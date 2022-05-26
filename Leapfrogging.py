@@ -95,7 +95,7 @@ class leapfrogging:
         return ss, ESS
     
     """
-    final structure is:
+    structure of ss:
     array 4x1
         dict with 2 keys
             key:'EQs' 4x4x5 array (this might be wrong)
@@ -136,6 +136,13 @@ class leapfrogging:
 			# %              ####     for each hashtag (x1,x2,c) - point in state space - max 5 eq's
         return tau # should probably call this ss and not tau... xxx
 
+    """
+    Structure of ESS:
+    Dict with 3 keys:
+        index 4x4x4
+        esr
+        bases
+    """
     def cESS(self,N):
         # % Create N x N x N array ess.index
         # % PURPOSE:
@@ -145,10 +152,10 @@ class leapfrogging:
         # % point (m,n,h) this equilibrium is stored in the ss-object as
         # % ss(h).(m,n,j).eq = ss(h).(m,n,ess.esr(ess.index(m,n,h))+1)
         ess = {'index':[], 'esr':[], 'bases':[]}
-        ess['index'] = np.empty(shape=(N+1,N+1,N+1),dtype='object')
-        for ic in range(1,N+1):
-            for ic1 in range(1,ic+1):
-                for ic2 in range(1,ic+1):
+        ess['index'] = np.empty(shape=(N,N,N),dtype='object')
+        for ic in range(N):
+            for ic1 in range(ic+1):
+                for ic2 in range(ic+1):
                     ess['index'][ic1,ic2,ic]  =  self.essindex(N,ic1,ic2,ic)
                     # % N*(N+1)*(2*N+1)/6 = sum(1^2 + 2^2 + 3^2 + ... + N^2)
                     ess['esr'] = np.zeros((1,int(N*(N+1)*(2*N+1)/6)))
@@ -161,14 +168,18 @@ class leapfrogging:
 
         # % INPUT: x is count of technological levels
         # % OUTPUT: ess index number for point (m,n,h) i state space
-        if set([ic1,ic2]).issuperset(set([ic,ic])):
-            index = 1 + self.div(x*(x+1)*(2*x+1),6) - self.div(ic*(ic+1)*(2*ic+1),6)
-        elif ic2 == ic:
-            index = 1 + self.div(x*(x+1)*(2*x+1),6) - self.div(ic*(ic+1)*(2*ic+1),6) + ic1
+        ici = ic + 1
+        ic1i = ic1 + 1
+        ic2i = ic2 + 1
+        print(f'ic1i = {ic1i}, ic2i = {ic2i}, ici = {ici}')
+        if set([ic1i,ic2i]) == set([ici,ici]):
+            index = 1 + self.div(x*(x+1)*(2*x+1),6) - self.div(ici*(ici+1)*(2*ici+1),6)
+        elif ic2i == ici:
+            index = 1 + self.div(x*(x+1)*(2*x+1),6) - self.div(ici*(ici+1)*(2*ici+1),6) + ic1i
         elif ic1 == ic:
-            index = 1 + self.div(x*(x+1)*(2*x+1),6) - self.div(ic*(ic+1)*(2*ic+1),6) + ic - 1 + ic2
+            index = 1 + self.div(x*(x+1)*(2*x+1),6) - self.div(ici*(ici+1)*(2*ici+1),6) + ici - 1 + ic2i
         else:
-            index = 1 + self.div(x*(x+1)*(2*x+1),6) - self.div(ic*(ic+1)*(2*ic+1),6) + 2*(ic - 1) + self.sub2ind([ic-1,ic-1],ic1,ic2) # xxx sub2ind might be a bit wonky
+            index = 1 + self.div(x*(x+1)*(2*x+1),6) - self.div(ici*(ici+1)*(2*ici+1),6) + 2*(ici - 1) + self.sub2ind([ici-1,ici-1],ic1i,ic2i) # xxx sub2ind might be a bit wonky
         return index
 
     def sub2ind(self,array_shape, rows, cols):
