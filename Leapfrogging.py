@@ -3,8 +3,17 @@
 """
 This is not even close to done 😎
 """
+import numpy as np
+import matplotlib.pyplot as plt
+import numpy.matlib
+# %matplotlib inline
+import quantecon as qe
+import scipy.optimize as optimize
+import scipy.sparse as sparse
+from quantecon import compute_fixed_point
+from quantecon.markov import DiscreteDP
 
-class lf:
+class leapfrogging:
 
     def __init__(self, Cmax = 5, Cmin = 0, nC = 4, pf = 1, k0 = 0, k1 = 8.3, k2 = 1, R = 0.05, Dt = 1):
         """
@@ -53,15 +62,6 @@ class lf:
     fix the functions dependent on mp (Think it's the same as self)
     fix all the for loops, might have to start on 0
     define all the self.solve functions
-    and define the functions:
-        ESS
-            bases
-            index
-        ss
-            nEQ
-            EQs
-                eq
-        EQ
         
     """
     def state_recursion(self,ss,ESS,tau,mp): 
@@ -94,8 +94,42 @@ class lf:
         # end of the scary while loop
         return ss, ESS
     
+    def cSS(self,N):
+			# % INPUT: N is natural positive number = number of stages
+			# % OUTPUT: 1 x N struct tau representing stages of state space
+			# % PURPOSE: Create state space structure to hold info on identified
+			# % equilibria
+
+
+			#     % P1 player 1 probability invest
+			#     % vN1 value of not investing for player 1
+			#     % vI1 value of investing for player 1
+			#     % P2 player 2 probability of invest
+			#     % vN2 value of not investing for player 2
+			#     % vI2 value of investing for player 2 
+			    
+			#     % Initialize datastructure for the state space
+        # disctionary
+        eq = {'P1':[], 'vN1':[], 'vI1':[], 'P2':[], 'vN2':[], 'vI2':[]}
+        # arrays which will consist of dictionaries
+        EQs = np.empty(shape=(5,5,5),dtype='object')
+        tau = np.empty(shape=(5),dtype='object')
+        for i in range(N):
+            EQs[i,i,4] = {'eq':eq} # 4 is because max 5 eqs ... consult litterature
+            tau[i] = {}
+            tau[i]['EQs'] = EQs  # container for identified equilibriums
+            tau[i]['nEQ'] = np.zeros((i+1,i+1)) # container for number of eqs in (x1,x2,c) point
+                
+			   
+
+			# %  #  ##  ###  ####     State space with 4 stages.
+			# %     ##  ###  ####     4x4 Hashtag field is reached with complete
+			# %         ###  ####     technological development.
+			# %              ####     for each hashtag (x1,x2,c) - point in state space - max 5 eq's
+        return tau
+
     # define all the solve functions used by state_recursion
-    def solve_last_corner(self,ss,ESS,mp):
+    def solve_last_corner(self,ss,ESS):
         h = self.nC # Number of technological levels
         c = self.Cmin # State of the art marginal cost for last tech. level
 
@@ -453,6 +487,6 @@ class lf:
 
     def populate_firms(self):
         for i in range(0,self.nC):
-            self.firm2[i,:i+1,:i+1] = np.matlib.repmat(C[:i+1],i+1,1)
+            self.firm2[i,:i+1,:i+1] = np.matlib.repmat(self.C[:i+1],i+1,1)
             self.firm1[i] = self.firm2[i].transpose().copy()
         
