@@ -112,10 +112,10 @@ class leapfrogging:
         # disctionary
         eq = {'P1':[], 'vN1':[], 'vI1':[], 'P2':[], 'vN2':[], 'vI2':[]}
         # arrays which will consist of dictionaries
-        EQs = np.empty(shape=(5,5,5),dtype='object')
-        tau = np.empty(shape=(5),dtype='object')
+        EQs = np.empty(shape=(N+1,N+1,N+1),dtype='object')
+        tau = np.empty(shape=(N+1),dtype='object')
         for i in range(N):
-            EQs[i,i,4] = {'eq':eq} # 4 is because max 5 eqs ... consult litterature
+            EQs[i,i,N-1] = {'eq':eq} # 4 is because max 5 eqs ... consult litterature
             tau[i] = {}
             tau[i]['EQs'] = EQs  # container for identified equilibriums
             tau[i]['nEQ'] = np.zeros((i+1,i+1)) # container for number of eqs in (x1,x2,c) point
@@ -126,7 +126,72 @@ class leapfrogging:
 			# %     ##  ###  ####     4x4 Hashtag field is reached with complete
 			# %         ###  ####     technological development.
 			# %              ####     for each hashtag (x1,x2,c) - point in state space - max 5 eq's
-        return tau
+        return tau # should probably call this ss and not tau... xxx
+
+    def cESS(self,N):
+        # % Create N x N x N array ess.index
+        # % PURPOSE:
+        # % ess.index(m,n,h) --> j
+        # % where j is the index for ess.esr such that
+        # % ess.esr(j)+1 is the equilibrium number played in state space
+        # % point (m,n,h) this equilibrium is stored in the ss-object as
+        # % ss(h).(m,n,j).eq = ss(h).(m,n,ess.esr(ess.index(m,n,h))+1)
+        ess = {'index':[], 'esr':[], 'bases':[]}
+        ess['index'] = np.empty(shape=(N+1,N+1,N+1),dtype='object')
+        for ic in range(1,N+1):
+            for ic1 in range(1,ic+1):
+                for ic2 in range(1,ic+1):
+                    ess['index'][ic1,ic2,ic]  =  self.essindex(N,ic1,ic2,ic)
+                    # % N*(N+1)*(2*N+1)/6 = sum(1^2 + 2^2 + 3^2 + ... + N^2)
+                    ess['esr'] = np.zeros((1,int(N*(N+1)*(2*N+1)/6)))
+                    ess['bases'] = np.ones((1,int(N*(N+1)*(2*N+1)/6)))
+                    # %ess.n = 1:(N*(N+1)*(2*N+1)/6)
+
+        return ess
+    
+    def essindex(self,x,ic1,ic2,ic):
+
+        # % INPUT: x is count of technological levels
+        # % OUTPUT: ess index number for point (m,n,h) i state space
+        if set([ic1,ic2]).issuperset(set([ic,ic])):
+            index = 1 + self.div(x*(x+1)*(2*x+1),6) - self.div(ic*(ic+1)*(2*ic+1),6)
+        elif ic2 == ic:
+            index = 1 + self.div(x*(x+1)*(2*x+1),6) - self.div(ic*(ic+1)*(2*ic+1),6) + ic1
+        elif ic1 == ic:
+            index = 1 + self.div(x*(x+1)*(2*x+1),6) - self.div(ic*(ic+1)*(2*ic+1),6) + ic - 1 + ic2
+        else:
+            index = 1 + self.div(x*(x+1)*(2*x+1),6) - self.div(ic*(ic+1)*(2*ic+1),6) + 2*(ic - 1) + self.sub2ind([ic-1,ic-1],ic1,ic2) # xxx sub2ind might be a bit wonky
+        return index
+
+    def sub2ind(self,array_shape, rows, cols):
+        ind = (cols-1)*array_shape[0] + rows
+        return ind 
+
+    def div(self,x,y):
+        out = np.floor(x/y) # xxx dot notation before: out=floor(x./y)
+        return out
+
+    def quad(self,a, b, c):
+        # % Solves:  ax^2  + bx + c = 0
+        # % but also always return 0 and 1 as candidates for probability of
+        # % investment
+        d = b**2 - 4*a*c
+        # xxx commented ou:
+        # if abs(a) < 1e-8:
+        #     pstar = [0. ; 1.;-c/b] # xxx no idea what happens here
+        # else: # probably doesn't need another else here
+        #     if d < 0:
+        #         pstar = [0. ;1.]
+        #     elif d == 0.:
+        #         pstar = [0. ;1. ; -b/(2*a)]
+        #     else:
+        #         pstar = [0. ;1. ; (-b - sqrt(d))/(2*a); (-b + sqrt(d))/(2*a)]
+        return pstar
+    
+    def EQ(self,P1,vN1,vI1,P2,vN2,vI2):
+        eq = {'P1':P1, 'vN1':vN1, 'vI1':vI1, 'P2':P2, 'vN2':vN2, 'vI2':vI2}
+        return eq
+
 
     # define all the solve functions used by state_recursion
     def solve_last_corner(self,ss,ESS):
@@ -144,12 +209,12 @@ class leapfrogging:
         P2 = vI2 > vN2 # Equivalent to 0>self.K(c) and hence equal to P1
         
         # OUTPUT is stored in ss
-        # wtf is happening here xx
+        # # wtf is happening here xx
         # ss(h).EQs(h,h,1).eq = self.EQ(P1,vN1,vI1,P2,vN2,vI2)
         # # Only one equilibrium is possible:
         # ss(h).nEQ(h,h) = 1
         # ESS.bases(ESS.index(h,h,h)) = 1
-        return ss, ESS
+        # return ss, ESS
 
     """
     xxx
