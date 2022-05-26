@@ -94,6 +94,14 @@ class leapfrogging:
         # end of the scary while loop
         return ss, ESS
     
+    """
+    final structure is:
+    array 4x1
+        dict with 2 keys
+            key:'EQs' 4x4x5 array (this might be wrong)
+                key:'eq' at (n x n x 4) (for n in {0,...,3})
+
+    """
     def cSS(self,N):
 			# % INPUT: N is natural positive number = number of stages
 			# % OUTPUT: 1 x N struct tau representing stages of state space
@@ -112,10 +120,10 @@ class leapfrogging:
         # disctionary
         eq = {'P1':[], 'vN1':[], 'vI1':[], 'P2':[], 'vN2':[], 'vI2':[]}
         # arrays which will consist of dictionaries
-        EQs = np.empty(shape=(N+1,N+1,N+1),dtype='object')
-        tau = np.empty(shape=(N+1),dtype='object')
+        EQs = np.empty(shape=(N,N,N+1),dtype='object')
+        tau = np.empty(shape=(N),dtype='object')
         for i in range(N):
-            EQs[i,i,N-1] = {'eq':eq} # 4 is because max 5 eqs ... consult litterature
+            EQs[i,i,N] = {'eq':eq} # 4 is because max 5 eqs ... consult litterature
             tau[i] = {}
             tau[i]['EQs'] = EQs  # container for identified equilibriums
             tau[i]['nEQ'] = np.zeros((i+1,i+1)) # container for number of eqs in (x1,x2,c) point
