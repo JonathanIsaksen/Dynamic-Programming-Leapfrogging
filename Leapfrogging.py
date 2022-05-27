@@ -158,7 +158,7 @@ class leapfrogging:
         for ic in range(N):
             for ic1 in range(ic+1):
                 for ic2 in range(ic+1):
-                    ess['index'][ic1,ic2,ic]  =  int(self.essindex(N,ic1,ic2,ic))
+                    ess['index'][ic1,ic2,ic]  =  int(self.essindex(N,ic1,ic2,ic) -1)
                     # % N*(N+1)*(2*N+1)/6 = sum(1^2 + 2^2 + 3^2 + ... + N^2)
                     ess['esr'] = np.zeros((1,int(N*(N+1)*(2*N+1)/6)),dtype=int)
                     ess['bases'] = np.ones((1,int(N*(N+1)*(2*N+1)/6)),dtype=int)
@@ -431,7 +431,7 @@ class leapfrogging:
         # % Create output for return
         ss[ic]['EQs'][ic,ic,1]['eq'] = self.EQ(P1, vN1, vI1, P2, vN2 , vI2)
         ss[ic]['nEQ'][ic,ic] = 1
-        ESS['bases'][0,ESS['index'][ic,ic,ic]-1] = 1
+        ESS['bases'][0,ESS['index'][ic,ic,ic]] = 1
         # % No update of ESS.bases is necessary in principle: "there can BE ONLY ONE
         # % equilibrium"  https://www.youtube.com/watch?v=sqcLjcSloXs
         return ss,ESS
