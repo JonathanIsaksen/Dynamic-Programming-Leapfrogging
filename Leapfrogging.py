@@ -160,8 +160,8 @@ class leapfrogging:
                 for ic2 in range(ic+1):
                     ess['index'][ic1,ic2,ic]  =  int(self.essindex(N,ic1,ic2,ic) -1)
                     # % N*(N+1)*(2*N+1)/6 = sum(1^2 + 2^2 + 3^2 + ... + N^2)
-                    ess['esr'] = np.zeros((1,int(N*(N+1)*(2*N+1)/6)),dtype=int)
-                    ess['bases'] = np.ones((1,int(N*(N+1)*(2*N+1)/6)),dtype=int)
+                    ess['esr'] = np.zeros(int(N*(N+1)*(2*N+1)/6),dtype=int)
+                    ess['bases'] = np.ones(int(N*(N+1)*(2*N+1)/6),dtype=int)
                     # %ess.n = 1:(N*(N+1)*(2*N+1)/6)
 
         return ess
@@ -233,7 +233,7 @@ class leapfrogging:
         ss[h]['EQs'][h,h,0]['eq'] = self.EQ(P1,vN1,vI1,P2,vN2,vI2)
         # Only one equilibrium is possible:
         ss[h]['nEQ'][h,h] = 1
-        ESS['bases'][0,ESS['index'][h,h,h]] = 1
+        ESS['bases'][ESS['index'][h,h,h]] = 1
         return ss, ESS
 
     """
@@ -282,7 +282,7 @@ class leapfrogging:
             # xxx wtf is happening here
             ss[ic]['EQs'][ic1,ic,h]['eq'] = self.EQ(P1,vN1,vI1,P2,vN2,vI2)
             ss[ic]['nEQ'][ic1,ic] = 1 # maybe 0 here xxx
-            ESS['bases'][0,ESS['index'][ic1,ic,ic]] = 1 # maybe 0 here xxx
+            ESS['bases'][ESS['index'][ic1,ic,ic]] = 1 # maybe 0 here xxx
         
         # xxx maybe start at 0?
         # Player 1 is at the edge s=(x1,x2,c) with x1=c=min(mp.C) and x2>c
@@ -301,7 +301,7 @@ class leapfrogging:
             # wtf is happening here xx
             ss[ic]['EQs'][ic, ic2, 0]['eq'] = self.EQ(P1, vN1, vI1, P2, vN2, vI2)
             ss[ic]['nEQ'][ic, ic2] = 1 # maybe 0 here xxx
-            ESS['bases'][0,ESS['index'][ic,ic2,ic]] = 1 # maybe 0 here xxx
+            ESS['bases'][ESS['index'][ic,ic2,ic]] = 1 # maybe 0 here xxx
 
         return ss,ESS
     """
@@ -318,8 +318,8 @@ class leapfrogging:
         These very long lambda functions have a lot of stuff that's not defined
         I think they just find whether investing or not investing gives highest utility
         """
-        g1 = lambda iC1, iC2, iC: np.maximum(ss[iC]['EQs'][iC1, iC2, ESS['esr'][0,ESS['index'][iC1,iC2,iC]]+1]['eq']['vN1'],ss[iC]['EQs'][iC1, iC2, ESS['esr'][0,ESS['index'][iC1,iC2,iC]]+1]['eq']['vI1'])
-        g2 = lambda iC1, iC2, iC: np.maximum(ss[iC]['EQs'][iC1, iC2, ESS['esr'][0,ESS['index'][iC1,iC2,iC]]+1]['eq']['vN2'],ss[iC]['EQs'][iC1, iC2, ESS['esr'][0,ESS['index'][iC1,iC2,iC]]+1]['eq']['vI2'])
+        g1 = lambda iC1, iC2, iC: np.maximum(ss[iC]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC]]+1]['eq']['vN1'],ss[iC]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC]]+1]['eq']['vI1'])
+        g2 = lambda iC1, iC2, iC: np.maximum(ss[iC]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC]]+1]['eq']['vN2'],ss[iC]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC]]+1]['eq']['vI2'])
 
     # xxx start on 0?
         for ic1 in range(1,ic-1): #Player 1 loop begin
@@ -390,9 +390,10 @@ class leapfrogging:
                                 ss[ic]['EQs'][ic1, ic2, count]['eq'] = self.EQ(pstar1[i],v1,v1,pstar2[j],v2,v2)
                         # no more j loop
                 # no more i loop    
-                # wtf is happening here xx    
+                # wtf is happening here xx  
+                print(f' count: {count} ')  
                 ss[ic]['nEQ'][ic1, ic2] = count
-                ESS['bases'][0,ESS['index'][ic1,ic2,ic]] = count
+                ESS['bases'][ESS['index'][ic1,ic2,ic]] = count
         return ss, ESS # end of solve_last_interior
 
     def  solve_corner(self,ss,ic,ESS):
@@ -418,20 +419,26 @@ class leapfrogging:
         # % Find 
         # % index for equilibrium selection h = 1 for simple selection rule
         # % Need ic+1 because ss(ic+1).EQs(ic,ic,h).eq is to be accessed
-        h = ESS['esr'][0,ESS['index'][ic,ic,ic+1]]+1
+        h = int(ESS['esr'][ESS['index'][ic,ic,ic+1]]+1)
 
         vN1 = ( self.r1(c,c) + self.beta*p*max(ss[ic+1]['EQs'][ic,ic,h]['eq']['vN1'],ss[ic+1]['EQs'][ic,ic,h]['eq']['vI1']) + self.beta*(1-p)*max(0,-self.K(c)))/(1-(1-p)*self.beta )
         vI1 = vN1 - self.K(c)
         vN2 = ( self.r2(c,c) + self.beta*p*max(ss[ic+1]['EQs'][ic,ic,h]['eq']['vN2'],ss[ic+1]['EQs'][ic,ic,h]['eq']['vI2']) + self.beta*(1-p)*max(0,-self.K(c)) )/(1-(1-p)*self.beta )
         vI2 = vN2 - self.K(c)
 
-        P1 = vI1 > vN1 #% no investment uncertainty and no investments if K(c) > 0.
-        P2 = vI2 > vN2
+        if vI1 > vN1: #% no investment uncertainty and no investments if K(c) > 0.
+            P1 = 1
+        else:
+            P1 = 0
+        if vI2 > vN2:
+            P2 = 1
+        else:
+            P2 = 0
 
         # % Create output for return
         ss[ic]['EQs'][ic,ic,1]['eq'] = self.EQ(P1, vN1, vI1, P2, vN2 , vI2)
         ss[ic]['nEQ'][ic,ic] = 1
-        ESS['bases'][0,ESS['index'][ic,ic,ic]] = 1
+        ESS['bases'][ESS['index'][ic,ic,ic]] = 1
         # % No update of ESS.bases is necessary in principle: "there can BE ONLY ONE
         # % equilibrium"  https://www.youtube.com/watch?v=sqcLjcSloXs
         return ss,ESS
@@ -458,11 +465,11 @@ class leapfrogging:
         # % technological development occurs: ss(iC+1)
         # % technological development does not occur: ss(iC)
 
-        # H1 = lambda iC1, iC2, iC: p*self.Phi(ss[iC+1]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC+1]]+1]['eq']['vN1'],ss[iC+1]['EQs'][iC1, iC2, ESS['esr'][0,ESS['index'][iC1,iC2,iC+1]]+1]['eq']['vI1']) + (1-p)*self.Phi(ss[iC]['EQs'][iC1, iC2, ESS['esr'](ESS.index(iC1,iC2,iC))+1).eq.vN1,ss(iC).EQs(iC1, iC2, ESS.esr(ESS.index(iC1,iC2,iC))+1).eq.vI1);
+        # H1 = lambda iC1, iC2, iC: p*self.Phi(ss[iC+1]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC+1]]+1]['eq']['vN1'],ss[iC+1]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC+1]]+1]['eq']['vI1']) + (1-p)*self.Phi(ss[iC]['EQs'][iC1, iC2, ESS['esr'](ESS.index(iC1,iC2,iC))+1).eq.vN1,ss(iC).EQs(iC1, iC2, ESS.esr(ESS.index(iC1,iC2,iC))+1).eq.vI1);
         # H2 = @(iC1, iC2, iC) p*mp.Phi(ss(iC+1).EQs(iC1, iC2, ESS.esr(ESS.index(iC1,iC2,iC+1))+1).eq.vN2,ss(iC+1).EQs(iC1, iC2, ESS.esr(ESS.index(iC1,iC2,iC+1))+1).eq.vI2) + (1-p)*mp.Phi(ss(iC).EQs(iC1, iC2, ESS.esr(ESS.index(iC1,iC2,iC))+1).eq.vN2,ss(iC).EQs(iC1, iC2, ESS.esr(ESS.index(iC1,iC2,iC))+1).eq.vI2);
 
-        H1 = lambda iC1, iC2, iC: p*self.Phi(ss[iC+1]['EQs'][iC1, iC2, ESS['esr'][0,ESS['index'][iC1,iC2,iC+1]]+1]['eq']['vN1'],ss[iC+1]['EQs'][iC1, iC2, ESS['esr'][0,ESS['index'][iC1,iC2,iC+1]]+1]['eq']['vI1']) + (1-p)*self.Phi(ss[iC]['EQs'][iC1, iC2, ESS['esr'][0,ESS['index'][iC1,iC2,iC]]+1]['eq']['vN1'],ss[iC]['EQs'][iC1, iC2, ESS['esr'][0,ESS['index'][iC1,iC2,iC]]+1]['eq']['vI1'])
-        H2 = lambda iC1, iC2, iC: p*self.Phi(ss[iC+1]['EQs'][iC1, iC2, ESS['esr'][0,ESS['index'][iC1,iC2,iC+1]]+1]['eq']['vN2'],ss[iC+1]['EQs'][iC1, iC2, ESS['esr'][0,ESS['index'][iC1,iC2,iC+1]]+1]['eq']['vI2']) + (1-p)*self.Phi(ss[iC]['EQs'][iC1, iC2, ESS['esr'][0,ESS['index'][iC1,iC2,iC]]+1]['eq']['vN2'],ss[iC]['EQs'][iC1, iC2, ESS['esr'][0,ESS['index'][iC1,iC2,iC]]+1]['eq']['vI2'])
+        H1 = lambda iC1, iC2, iC: p*self.Phi(ss[iC+1]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC+1]]+1]['eq']['vN1'],ss[iC+1]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC+1]]+1]['eq']['vI1']) + (1-p)*self.Phi(ss[iC]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC]]+1]['eq']['vN1'],ss[iC]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC]]+1]['eq']['vI1'])
+        H2 = lambda iC1, iC2, iC: p*self.Phi(ss[iC+1]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC+1]]+1]['eq']['vN2'],ss[iC+1]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC+1]]+1]['eq']['vI2']) + (1-p)*self.Phi(ss[iC]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC]]+1]['eq']['vN2'],ss[iC]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC]]+1]['eq']['vI2'])
 
         # % Efficiency ... why evaluate the call for each run of following loop? i is
         # % constant in domain outside loop!! What changes in the function is the
@@ -474,17 +481,17 @@ class leapfrogging:
             c1 = self.C[ic1]
             # % First calculate vI1 depending only on known factors ... no uncertainty about Player 2 because he is at the edge
             vI1 = self.r1(c1,c) - self.K(c) + self.beta*H1(ic,ic,ic)
-            vN1search = lambda z: self.r1(c1,c) + self.beta*(p*max(ss[ic+1]['EQs'][ic1,ic,ESS['esr'][0,ESS['index'][ic1,ic,ic+1]]+1]['eq']['vN1'], ss[ic+1]['EQs'][ic1, ic, ESS['esr'][0,ESS['index'][ic1,ic,ic+1]]+1]['eq']['vI1'])+(1-p)*max(z,vI1)) - z
+            vN1search = lambda z: self.r1(c1,c) + self.beta*(p*max(ss[ic+1]['EQs'][ic1,ic,ESS['esr'][ESS['index'][ic1,ic,ic+1]]+1]['eq']['vN1'], ss[ic+1]['EQs'][ic1, ic, ESS['esr'][ESS['index'][ic1,ic,ic+1]]+1]['eq']['vI1'])+(1-p)*max(z,vI1)) - z
             vN1 = optimize.fsolve(vN1search,0)
             P1 = vI1 > vN1
 
-            vN2 = (self.r2(c1,c) + self.beta*(P1*H2(ic,ic,ic)+(1-P1)*(p*self.Phi(ss[ic+1]['EQs'][ic1, ic,ESS['esr'][0,ESS['index'][ic1,ic,ic+1]]+1]['eq']['vN2'],ss[ic+1]['EQs'][ic1, ic,ESS['esr'][0,ESS['index'][ic1,ic,ic+1]]+1]['eq']['vI2']) + (1-p)*self.Phi(0,-self.K(c)))))/(1-self.beta*(1-P1)*(1-p))
+            vN2 = (self.r2(c1,c) + self.beta*(P1*H2(ic,ic,ic)+(1-P1)*(p*self.Phi(ss[ic+1]['EQs'][ic1, ic,ESS['esr'][ESS['index'][ic1,ic,ic+1]]+1]['eq']['vN2'],ss[ic+1]['EQs'][ic1, ic,ESS['esr'][ESS['index'][ic1,ic,ic+1]]+1]['eq']['vI2']) + (1-p)*self.Phi(0,-self.K(c)))))/(1-self.beta*(1-P1)*(1-p))
             vI2 = vN2 - self.K(c)
             P2 = vI2 > vN2
 
             ss[ic]['EQs'][ic1,ic,1]['eq'] = self.EQ(P1, vN1, vI1, P2, vN2, vI2)
             ss[ic]['nEQ'][ic1,ic] = 1
-            ESS['bases'][0,ESS['index'][ic1,ic,ic]] = 1
+            ESS['bases'][ESS['index'][ic1,ic,ic]] = 1
             # end % Exit player 1 not at edge loop
 
         # % if at (c,x2,c) edge where x2<c - Player 1 is at the edge
@@ -492,17 +499,17 @@ class leapfrogging:
             c2 = self.C[ic2]
 
             vI2 = self.r2(c,c2) - self.K(c) + self.beta*H2(ic,ic,ic)
-            vN2search = lambda z: self.r2(c,c2) + self.beta*(p*max(ss[ic+1]['EQs'][ic, ic2,ESS['esr'][0,ESS['index'][ic,ic2,ic+1]]+1]['eq']['vN2'], ss[ic+1]['EQs'][ic, ic2, ESS['esr'][0,ESS['index'][ic,ic2,ic+1]]+1]['eq']['vI2']) + (1-p)*max(z,vI2)) - z
+            vN2search = lambda z: self.r2(c,c2) + self.beta*(p*max(ss[ic+1]['EQs'][ic, ic2,ESS['esr'][ESS['index'][ic,ic2,ic+1]]+1]['eq']['vN2'], ss[ic+1]['EQs'][ic, ic2, ESS['esr'][ESS['index'][ic,ic2,ic+1]]+1]['eq']['vI2']) + (1-p)*max(z,vI2)) - z
             vN2 = optimize.fsolve(vN2search,0)
             P2 = vI2 > vN2
 
-            vN1 = (self.r1(c,c2) + self.beta*(P2*H1(ic,ic,ic)+(1-P2)*(p*self.Phi(ss[ic+1]['EQs'][ic, ic2, ESS['esr'][0,ESS['index'][ic,ic2,ic+1]]+1]['eq']['vN1'],ss[ic+1]['EQs'][ic, ic2, ESS['esr'][0,ESS['index'][ic,ic2,ic+1]]+1]['eq']['vI1'])+(1-p)*self.Phi(0,-self.K(c)))))/(1-self.beta*(1-P2)*(1-p))
+            vN1 = (self.r1(c,c2) + self.beta*(P2*H1(ic,ic,ic)+(1-P2)*(p*self.Phi(ss[ic+1]['EQs'][ic, ic2, ESS['esr'][ESS['index'][ic,ic2,ic+1]]+1]['eq']['vN1'],ss[ic+1]['EQs'][ic, ic2, ESS['esr'][ESS['index'][ic,ic2,ic+1]]+1]['eq']['vI1'])+(1-p)*self.Phi(0,-self.K(c)))))/(1-self.beta*(1-P2)*(1-p))
             vI1 = vN1-self.K(c)
             P1 = vI1 > vN1
 
             ss[ic]['EQs'][ic,ic2,1]['eq'] = self.EQ(P1, vN1, vI1, P2, vN2, vI2)
             ss[ic]['nEQ'][ic,ic2] = 1
-            ESS['bases'][0,ESS['index'][ic,ic2,ic]] = 1
+            ESS['bases'][ESS['index'][ic,ic2,ic]] = 1
         # % No update of ESS.bases is necessary: "there can BE ONLY ONE
         # % equilibrium"  https://www.youtube.com/watch?v=sqcLjcSloXs
         # end % Exit player 2 not at edge loop

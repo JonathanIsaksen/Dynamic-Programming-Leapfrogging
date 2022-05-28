@@ -45,25 +45,14 @@ class rls_class:
                 print(f'we are in the try now at {iEQ} ')
             except:
                 pass
-            print(iEQ)
             ESS[iEQ+1] = self.addOne(copy.deepcopy(ESS[iEQ]))
-            temp_index = []
-            temp_index_true = []
-            for i in range(len(ESS[iEQ+1]['esr'])):
-                print(f'+1 is here: {ESS[iEQ+1]["esr"][i]}')
-                print(f'not +1 is here: {ESS[iEQ]["esr"][i]}')
-                temp_index_true.append((ESS[iEQ+1]['esr'][i]-ESS[iEQ]['esr'][i])!=0)
-            print(temp_index_true)
-            for i,j in enumerate(temp_index_true):
-                if j:
-                    temp_index.append(ESS[iEQ+1]['esr'][i])
-                else:
-                    temp_index.append(0)
-            print(temp_index)
-
-            changeindex = min(np.nonzero((ESS[iEQ+1]['esr'][0]-ESS[iEQ]['esr'][0])!=0))
-            tau = sum(changeindex<=stage_index)-1 #% tau0 is found
-
+            changeindex_temp = np.nonzero((ESS[iEQ+1]['esr']-ESS[iEQ]['esr'])!=0)[0]
+            changeindex = min(changeindex_temp)
+            count_index = 0
+            for i in stage_index:
+                if changeindex<=i:
+                    count_index += 1
+            tau = count_index-1 #% tau0 is found
             if np.all(ESS[iEQ+1]['esr']==-1):
                 break
 
@@ -84,13 +73,13 @@ class rls_class:
         # %if x[1,1,1] == -1
         # %    throw(error("This ESS has already overflown!"))
         # %end
-        n = len(addESS['esr'][0])
+        n = len(addESS['esr'])
         X = np.zeros(n)
         R = 1
         for i in np.flip(np.arange(n)):
-            X[i] = int(np.mod(addESS['esr'][0,i] + R,addESS['bases'][0,i]+1)) # xxx added 1 as to not divide by 0
+            X[i] = int(np.mod(addESS['esr'][i] + R,addESS['bases'][i]+1)) # xxx added 1 as to not divide by 0
             # % mod(a,b) does division and returns the remainder given as a-div(a,b)*b
-            R = lf.div(addESS['esr'][0,i] + R,addESS['bases'][0,i]+1)
+            R = lf.div(addESS['esr'][i] + R,addESS['bases'][i]+1)
             # % div(a,b) does division and truncates - rounding down - to nearest integer  .... floor(a/b)
         if R > 0:
         # % When exiting the loop R > 0 occurs when all ESS.number is max allowed
