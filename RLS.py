@@ -31,7 +31,7 @@ class rls_class:
         out[:] = np.NaN
         while iEQ < rlsp['maxEQ']:
             TAU[iEQ] = tau
-            ss, ESS[iEQ] = G(ss,ESS[iEQ], tau)
+            ss, ESS[iEQ] = G(copy.deepcopy(ss),copy.deepcopy(ESS[iEQ]), tau)
 
             if (np.mod(iEQ,rlsp['print'])==0):
                 print(f'ESR[{iEQ}][\'esr\']  :')
@@ -46,19 +46,23 @@ class rls_class:
             except:
                 pass
             ESS[iEQ+1] = self.addOne(copy.deepcopy(ESS[iEQ]))
+            print(f"ESS+1.esr {ESS[iEQ+1]['esr']} ")
+            print(f"ESS.esr {ESS[iEQ]['esr']} ")
             changeindex_temp = np.nonzero((ESS[iEQ+1]['esr']-ESS[iEQ]['esr'])!=0)[0]
             changeindex = min(changeindex_temp)
+            print(f'change index: {changeindex}')
             count_index = 0
             for i in stage_index:
                 if changeindex<=i:
                     count_index += 1
             tau = count_index-1 #% tau0 is found
+            print(f'tau after count: {tau}')
             if np.all(ESS[iEQ+1]['esr']==-1):
                 break
 
             iEQ += 1
             # end % End of recursive lexicographical search
-        TAU=TAU[1:iEQ]
+        TAU=TAU[:iEQ-1]
     
         return ESS, TAU, out
 
@@ -77,14 +81,18 @@ class rls_class:
         X = np.zeros(n)
         R = 1
         for i in np.flip(np.arange(n)):
-            X[i] = int(np.mod(addESS['esr'][i] + R,addESS['bases'][i]+1)) # xxx added 1 as to not divide by 0
+            temp_xi = np.mod(addESS['esr'][i] + R,addESS['bases'][i])
+            if np.isnan(temp_xi):
+                X[i] = int(0)
+            else:
+                X[i] = int(temp_xi)
             # % mod(a,b) does division and returns the remainder given as a-div(a,b)*b
             R = lf.div(addESS['esr'][i] + R,addESS['bases'][i]+1)
             # % div(a,b) does division and truncates - rounding down - to nearest integer  .... floor(a/b)
         if R > 0:
         # % When exiting the loop R > 0 occurs when all ESS.number is max allowed
         # % which is 1 below the base.
-        # % println("No more equilibria to check.")
+            print("No more equilibria to check.")
             addESS['esr'] = -1*np.ones(n)
         else:
             addESS['esr'] = X

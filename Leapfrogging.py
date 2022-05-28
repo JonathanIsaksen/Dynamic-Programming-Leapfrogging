@@ -66,31 +66,36 @@ class leapfrogging:
         
     """
     def state_recursion(self,ss,ESS,tau): 
+        print(f'tau in state_recursion: {tau}')
+        print(f"bases in state_recusion: {ESS['bases']}")
         if tau == self.T:
-            ss,Ess = self.solve_last_corner(ss,ESS)
+            ss,ESS = self.solve_last_corner(ss.copy(),ESS.copy())
             tau -= 1
         if tau == self.T -1:
-            ss,Ess = self.solve_last_edge(ss,ESS)
+            ss,ESS = self.solve_last_edge(ss.copy(),ESS.copy())
             tau -= 1
         if tau == self.T -2:
-            ss,Ess = self.solve_last_interior(ss,ESS)
+            ss,ESS = self.solve_last_interior(ss.copy(),ESS.copy())
             tau -= 1
-        
+        print(f"bases after T,-1,-2: {ESS['bases']}")
         dothis = 1
         while dothis == 1: # break when tau=0 
             if np.remainder(tau,3)==1: 
                 ic = int(np.ceil((tau+2)/3)) - 1 # -1 for python indexing xxx
-                ss,ESS = self.solve_corner(ss,ic,ESS)
+                """
+                here so far
+                """
+                ss,ESS = self.solve_corner(ss.copy(),ic,ESS.copy())
                 tau -= 1
                 if tau == 0:
                     break
             if np.remainder(tau,3)==0:
                 ic = int(np.ceil((tau+2)/3)) - 1 # python starts at 0
-                ss, ESS = self.solve_edge(ss,ic,ESS)
+                ss, ESS = self.solve_edge(ss.copy(),ic,ESS.copy())
                 tau -= 1
             if np.remainder(tau,3) == 2:
                 ic = int(np.ceil((tau+2)/3)) - 1 # python starts at 0
-                ss, ESS = self.solve_interior(ss,ic,ESS)
+                ss, ESS = self.solve_interior(ss.copy(),ic,ESS.copy())
                 tau -= 1
         # end of the scary while loop
         return ss, ESS
@@ -209,7 +214,23 @@ class leapfrogging:
         return pstar
     
     def EQ(self,P1,vN1,vI1,P2,vN2,vI2):
-        eq = {'P1':P1, 'vN1':vN1, 'vI1':vI1, 'P2':P2, 'vN2':vN2, 'vI2':vI2}
+        list_eq = []
+        for v in [P1,vN1,vI1,P2,vN2,vI2]:
+            if isinstance(v,numpy.ndarray):
+                if v[0]==True:
+                    list_eq.append(1)
+                elif not v[0]:
+                    list_eq.append(0)
+                else:
+                    list_eq.append(v[0])
+            else:
+                if v==True:
+                    list_eq.append(1)
+                elif not v:
+                    list_eq.append(0)
+                else:
+                    list_eq.append(v)
+        eq = {'P1':list_eq[0], 'vN1':list_eq[1], 'vI1':list_eq[2], 'P2':list_eq[3], 'vN2':list_eq[4], 'vI2':list_eq[5]}
         return eq
 
 
@@ -230,17 +251,12 @@ class leapfrogging:
         
         # OUTPUT is stored in ss
         # wtf is happening here xx
-        ss[h]['EQs'][h,h,0]['eq'] = self.EQ(P1,vN1,vI1,P2,vN2,vI2)
+        ss[h]['EQs'][h,h,0]['eq'] = self.EQ(P1,vN1,vI1,P2,vN2,vI2) # changed to 0
         # Only one equilibrium is possible:
         ss[h]['nEQ'][h,h] = 1
         ESS['bases'][ESS['index'][h,h,h]] = 1
         return ss, ESS
 
-    """
-    xxx
-    To do:
-    Define all of the functions used :(
-    """
     def solve_last_edge(self,ss,ESS):
         # % INPUT:
         # % cost and mp are global parameters
@@ -252,10 +268,10 @@ class leapfrogging:
         # % Edge <=> s=(x1,x2,c) with x2 = c = min(mp.C) and x1 > c or
         # % s=(x1,x2,c) with x1 = c = min(mp.C) and x2 > c
 
-        ic = self.nC - 1 # Get the level of technology final layer
+        ic = self.nC - 1 # Get the level of technology final layer # -1
         c = self.Cmin # Get state of the art marginal cost for tech. of final layer
 
-        h = 0
+        h = 0 # changed to 0 from 1
         # % h is used to select equilibria in the corner of the final layer but there
         # % is only ever 1 equilibria in the corner
         # % If we did not apply this apriori knowledge we would have to use ESS
@@ -264,10 +280,12 @@ class leapfrogging:
         # Get the value of max choice in the corner of final layer s = (c,c,c)
         # xxx lots of nested functions here that are not defined
         g1_ccc = np.maximum(ss[ic]['EQs'][ic,ic,h]['eq']['vN1'],ss[ic]['EQs'][ic,ic,h]['eq']['vI1'])
+        
         g2_ccc = np.maximum(ss[ic]['EQs'][ic,ic,h]['eq']['vN2'],ss[ic]['EQs'][ic,ic,h]['eq']['vI2'])
+        print(f'g1_ccc {g2_ccc}')
         # Player 2 is at the edge s=(x1,x2,c) with x2=c=min(mp.C) and x1>c
         # xxx start on 0?
-        for ic1 in range(ic-1): # might have to change this to +1 xxx and ic1 to -1
+        for ic1 in range(ic): # might have to change this to +1 xxx and ic1 to -1
             x1 = self.C[ic1] 
             vI1 = self.r1(x1,c) - self.K(c)  + self.beta * g1_ccc
             vN1search = lambda z: self.r1(x1,c) + self.beta * self.Phi(z,vI1) - z
@@ -280,13 +298,16 @@ class leapfrogging:
             P2 = vI2 > vN2
 
             # xxx wtf is happening here
+
             ss[ic]['EQs'][ic1,ic,h]['eq'] = self.EQ(P1,vN1,vI1,P2,vN2,vI2)
+
+
             ss[ic]['nEQ'][ic1,ic] = 1 # maybe 0 here xxx
             ESS['bases'][ESS['index'][ic1,ic,ic]] = 1 # maybe 0 here xxx
         
         # xxx maybe start at 0?
         # Player 1 is at the edge s=(x1,x2,c) with x1=c=min(mp.C) and x2>c
-        for ic2 in range(ic-1): # xxx might have to change to +1
+        for ic2 in range(ic): # xxx might have to change to +1
             x2 = self.C[ic2]
             vI2 = self.r2(c,x2) - self.K(c) + self.beta * g2_ccc
             vN2search = lambda x: self.r2(c, x2) + self.beta*self.Phi(x,vI2)-x
@@ -299,7 +320,11 @@ class leapfrogging:
             P1 = vI1 > vN1
 
             # wtf is happening here xx
-            ss[ic]['EQs'][ic, ic2, 0]['eq'] = self.EQ(P1, vN1, vI1, P2, vN2, vI2)
+            
+            ss[ic]['nEQ'][ic1,ic] = 1 # maybe 0 here xxx
+            ESS['bases'][ESS['index'][ic1,ic,ic]] = 1 # maybe 0 here xxx
+
+            ss[ic]['EQs'][ic, ic2, 0]['eq'] = self.EQ(P1, vN1, vI1, P2, vN2, vI2) # changed to 0
             ss[ic]['nEQ'][ic, ic2] = 1 # maybe 0 here xxx
             ESS['bases'][ESS['index'][ic,ic2,ic]] = 1 # maybe 0 here xxx
 
@@ -312,18 +337,18 @@ class leapfrogging:
     def solve_last_interior(self,ss,ESS):
         # outside loop xxx might have to change to -1 on these
         ic = self.nC -1
-        c = self.C[ic] -1
+        c = self.C[ic]
 
         """
-        These very long lambda functions have a lot of stuff that's not defined
         I think they just find whether investing or not investing gives highest utility
         """
-        g1 = lambda iC1, iC2, iC: np.maximum(ss[iC]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC]]+1]['eq']['vN1'],ss[iC]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC]]+1]['eq']['vI1'])
-        g2 = lambda iC1, iC2, iC: np.maximum(ss[iC]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC]]+1]['eq']['vN2'],ss[iC]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC]]+1]['eq']['vI2'])
+        # removed +1 from iC1, iC2, +1 ESS ...
+        g1 = lambda iC1, iC2, iC: np.maximum(ss[iC]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vN1'],ss[iC]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vI1'])
+        g2 = lambda iC1, iC2, iC: np.maximum(ss[iC]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vN2'],ss[iC]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vI2'])
 
-    # xxx start on 0?
-        for ic1 in range(1,ic-1): #Player 1 loop begin
-            for ic2 in range(1,ic-1): #Player 2 loop begin                
+
+        for ic1 in range(ic): #Player 1 loop begin # xxx maybe ad -1
+            for ic2 in range(ic): #Player 2 loop begin                
                 # Player 1 -> leads to P2 candidates
                 # what is g1 xxx
                 a = self.r1(self.C[ic1], self.C[ic2]) - self.K(c) + self.beta*g1(ic, ic2, ic) #check
@@ -336,7 +361,7 @@ class leapfrogging:
                 b_1 = self.beta * g1(ic1, ic, ic) + (self.beta-1)*b - self.beta*a # check
                 b_2 = self.r1(self.C[ic1],self.C[ic2]) + (self.beta-1) * a # check 
 
-
+                print(f'pstar2 variables: {b_0, b_1, b_2}')
                 pstar2 = self.quad(b_0, b_1, b_2)
                 # always return 1 and 0 for the pure strategies
 
@@ -358,18 +383,31 @@ class leapfrogging:
                 count = 0
                 for i in range(len(pstar1)):
                         for j in range(len(pstar2)):
-                            if set([i,j]).issuperset(set([1,2])): # matlab code: all(ismember([i,j],[1,2])) # these are pure strategies
+                            if i in [1,2] and j in [0,1]: # matlab code: all(ismember([i,j],[1,2])) # these are pure strategies
+                                print('we made it into if supersset')
+                                print(pstar1)
+                                print(pstar2)
                                 # % If the polynomial is negative vI > vN
                                 # % hence player invests set exPj=1 else 0
                                 # % exP1 is best response to pstar2(j)
-                                exP1 = b_2 + b_1 * pstar2[j] + b_0 * pstar2[j]**2 < 0
-                                exP2 = d_2 + d_1 * pstar1[i] + d_0 * pstar1[i]**2 < 0
+                                if b_2 + b_1 * pstar2[j] + b_0 * pstar2[j]**2 < 0:
+                                    exP1 = 1
+                                else:
+                                    exP1 = 0
+
+                                if d_2 + d_1 * pstar1[i] + d_0 * pstar1[i]**2 < 0:
+                                    exP2 = 1
+                                else:
+                                    exP2 = 0
 
                                 # % check if both are playing best response
                                 # % in pure strategies. Players best response
                                 # % should be equal to the candidate to which
                                 # % the other player is best responding.
+                                print(f'variables: {exP1, pstar1[i], exP2, pstar2[j]} ')
+                                print(f' total:{ abs(exP1 - pstar1[i])} ')
                                 if abs(exP1 - pstar1[i]) < 1e-8 and abs(exP2-pstar2[j]) < 1e-8:
+                                    print('into the superset^2')
                                     # % if exP1=0 and pstar_i=0 true
                                     # % if exP1=1 and pstar_i=1 true
                                     # % Testing whether best response exP1 is
@@ -391,7 +429,7 @@ class leapfrogging:
                         # no more j loop
                 # no more i loop    
                 # wtf is happening here xx  
-                print(f' count: {count} ')  
+                print(f' count in last_interior: {count} ')  
                 ss[ic]['nEQ'][ic1, ic2] = count
                 ESS['bases'][ESS['index'][ic1,ic2,ic]] = count
         return ss, ESS # end of solve_last_interior
@@ -436,7 +474,7 @@ class leapfrogging:
             P2 = 0
 
         # % Create output for return
-        ss[ic]['EQs'][ic,ic,1]['eq'] = self.EQ(P1, vN1, vI1, P2, vN2 , vI2)
+        ss[ic]['EQs'][ic,ic,0]['eq'] = self.EQ(P1, vN1, vI1, P2, vN2 , vI2) # changed to 0
         ss[ic]['nEQ'][ic,ic] = 1
         ESS['bases'][ESS['index'][ic,ic,ic]] = 1
         # % No update of ESS.bases is necessary in principle: "there can BE ONLY ONE
@@ -489,7 +527,7 @@ class leapfrogging:
             vI2 = vN2 - self.K(c)
             P2 = vI2 > vN2
 
-            ss[ic]['EQs'][ic1,ic,1]['eq'] = self.EQ(P1, vN1, vI1, P2, vN2, vI2)
+            ss[ic]['EQs'][ic1,ic,0]['eq'] = self.EQ(P1, vN1, vI1, P2, vN2, vI2) # changed to 0
             ss[ic]['nEQ'][ic1,ic] = 1
             ESS['bases'][ESS['index'][ic1,ic,ic]] = 1
             # end % Exit player 1 not at edge loop
@@ -507,7 +545,7 @@ class leapfrogging:
             vI1 = vN1-self.K(c)
             P1 = vI1 > vN1
 
-            ss[ic]['EQs'][ic,ic2,1]['eq'] = self.EQ(P1, vN1, vI1, P2, vN2, vI2)
+            ss[ic]['EQs'][ic,ic2,0]['eq'] = self.EQ(P1, vN1, vI1, P2, vN2, vI2) # changed to 0
             ss[ic]['nEQ'][ic,ic2] = 1
             ESS['bases'][ESS['index'][ic,ic2,ic]] = 1
         # % No update of ESS.bases is necessary: "there can BE ONLY ONE
@@ -585,7 +623,7 @@ class leapfrogging:
         pstar1 = lf.quad(qa, qb, qc)
 
 
-        count = 0
+        count = -1 # changed to -1 from
         for i in range(1,len(pstar1)):
             for j in range(1,len(pstar2)):
                 if set([i,j]).issuperset(set([1,2])): # matlab code: all(ismember([i,j],[1,2]))
