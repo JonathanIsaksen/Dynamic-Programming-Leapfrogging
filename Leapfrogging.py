@@ -94,6 +94,7 @@ class leapfrogging:
                 ss, ESS = self.solve_edge(ss.copy(),ic,ESS.copy())
                 tau -= 1
             if np.remainder(tau,3) == 2:
+                print('in mod==2')
                 ic = int(np.ceil((tau+2)/3)) - 1 # python starts at 0
                 ss, ESS = self.solve_interior(ss.copy(),ic,ESS.copy())
                 tau -= 1
@@ -282,7 +283,6 @@ class leapfrogging:
         g1_ccc = np.maximum(ss[ic]['EQs'][ic,ic,h]['eq']['vN1'],ss[ic]['EQs'][ic,ic,h]['eq']['vI1'])
         
         g2_ccc = np.maximum(ss[ic]['EQs'][ic,ic,h]['eq']['vN2'],ss[ic]['EQs'][ic,ic,h]['eq']['vI2'])
-        print(f'g1_ccc {g2_ccc}')
         # Player 2 is at the edge s=(x1,x2,c) with x2=c=min(mp.C) and x1>c
         # xxx start on 0?
         for ic1 in range(ic): # might have to change this to +1 xxx and ic1 to -1
@@ -361,7 +361,6 @@ class leapfrogging:
                 b_1 = self.beta * g1(ic1, ic, ic) + (self.beta-1)*b - self.beta*a # check
                 b_2 = self.r1(self.C[ic1],self.C[ic2]) + (self.beta-1) * a # check 
 
-                print(f'pstar2 variables: {b_0, b_1, b_2}')
                 pstar2 = self.quad(b_0, b_1, b_2)
                 # always return 1 and 0 for the pure strategies
 
@@ -383,10 +382,7 @@ class leapfrogging:
                 count = 0
                 for i in range(len(pstar1)):
                         for j in range(len(pstar2)):
-                            if i in [1,2] and j in [0,1]: # matlab code: all(ismember([i,j],[1,2])) # these are pure strategies
-                                print('we made it into if supersset')
-                                print(pstar1)
-                                print(pstar2)
+                            if i in [0,1] and j in [0,1]: # matlab code: all(ismember([i,j],[1,2])) # these are pure strategies
                                 # % If the polynomial is negative vI > vN
                                 # % hence player invests set exPj=1 else 0
                                 # % exP1 is best response to pstar2(j)
@@ -404,10 +400,7 @@ class leapfrogging:
                                 # % in pure strategies. Players best response
                                 # % should be equal to the candidate to which
                                 # % the other player is best responding.
-                                print(f'variables: {exP1, pstar1[i], exP2, pstar2[j]} ')
-                                print(f' total:{ abs(exP1 - pstar1[i])} ')
                                 if abs(exP1 - pstar1[i]) < 1e-8 and abs(exP2-pstar2[j]) < 1e-8:
-                                    print('into the superset^2')
                                     # % if exP1=0 and pstar_i=0 true
                                     # % if exP1=1 and pstar_i=1 true
                                     # % Testing whether best response exP1 is
@@ -429,7 +422,6 @@ class leapfrogging:
                         # no more j loop
                 # no more i loop    
                 # wtf is happening here xx  
-                print(f' count in last_interior: {count} ')  
                 ss[ic]['nEQ'][ic1, ic2] = count
                 ESS['bases'][ESS['index'][ic1,ic2,ic]] = count
         return ss, ESS # end of solve_last_interior
@@ -564,8 +556,8 @@ class leapfrogging:
         # % rule and ESS.bases being the bases of the ESS.esr's
         
         c = self.C[ic]
-        for ic1 in range(1,ic-1):
-            for ic2 in range(1,ic-1):
+        for ic1 in range(ic):
+            for ic2 in range(ic):
                 ss,ESS = self.find_interior(ss,ic1,ic2,ic,c,ESS)
         return ss, ESS
     
@@ -581,12 +573,12 @@ class leapfrogging:
         # % 
 
         # % get probability of technological development
-        p = self.p(ic)
+        p = self.p[ic]
         q = 1-p
 
         # % h is used for selected equilibrium in state realized when technology
         # % develops hence ic+1 in ESS.index(ic1,ic2,ic+1)
-        h = ESS.esr(ESS.index(ic1,ic2,ic+1))+1
+        h = ESS['esr'][ESS['index'][ic1,ic2,ic+1]] # xxx remove 1?
 
 
 
@@ -596,20 +588,24 @@ class leapfrogging:
         """
         These probably need to be fixed...
         """
-        H1 = lambda iC1, iC2, iC: p*self.Phi(  ss(iC+1).EQs(iC1, iC2, ESS.esr(ESS.index(iC1,iC2,iC+1))+1).eq.vN1 , ss(iC+1).EQs(iC1, iC2, ESS.esr(ESS.index(iC1,iC2,iC+1))+1).eq.vI1  ) + (1-p)*self.Phi(  ss(iC).EQs(iC1, iC2, ESS.esr(ESS.index(iC1,iC2,iC))+1).eq.vN1 , ss(iC).EQs(iC1, iC2, ESS.esr(ESS.index(iC1,iC2,iC))+1).eq.vI1  )
-        H2 = lambda iC1, iC2, iC: p*self.Phi(  ss(iC+1).EQs(iC1, iC2, ESS.esr(ESS.index(iC1,iC2,iC+1))+1).eq.vN2 , ss(iC+1).EQs(iC1, iC2, ESS.esr(ESS.index(iC1,iC2,iC+1))+1).eq.vI2  ) + (1-p) * self.Phi(  ss(iC).EQs(iC1, iC2, ESS.esr(ESS.index(iC1,iC2,iC))+1).eq.vN2 , ss(iC).EQs(iC1, iC2, ESS.esr(ESS.index(iC1,iC2,iC))+1).eq.vI2  )
+        # H1 = lambda iC1, iC2, iC: p*self.Phi(  ss(iC+1).EQs(iC1, iC2, ESS.esr(ESS.index(iC1,iC2,iC+1))+1).eq.vN1 , ss(iC+1).EQs(iC1, iC2, ESS.esr(ESS.index(iC1,iC2,iC+1))+1).eq.vI1  ) + (1-p)*self.Phi(  ss(iC).EQs(iC1, iC2, ESS.esr(ESS.index(iC1,iC2,iC))+1).eq.vN1 , ss(iC).EQs(iC1, iC2, ESS.esr(ESS.index(iC1,iC2,iC))+1).eq.vI1  )
+        # H2 = lambda iC1, iC2, iC: p*self.Phi(  ss(iC+1).EQs(iC1, iC2, ESS.esr(ESS.index(iC1,iC2,iC+1))+1).eq.vN2 , ss(iC+1).EQs(iC1, iC2, ESS.esr(ESS.index(iC1,iC2,iC+1))+1).eq.vI2  ) + (1-p) * self.Phi(  ss(iC).EQs(iC1, iC2, ESS.esr(ESS.index(iC1,iC2,iC))+1).eq.vN2 , ss(iC).EQs(iC1, iC2, ESS.esr(ESS.index(iC1,iC2,iC))+1).eq.vI2  )
 
-        a = self.r1( self.C(ic1),self.C(ic2) ) - self.K(c) + self.beta * H1(ic,ic2,ic) #check
+        H1 = lambda iC1, iC2, iC: p*self.Phi(  ss[iC+1]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC+1]]+1]['eq']['vN1'], ss[iC+1]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC+1]]+1]['eq']['vI1']  ) + (1-p)*self.Phi(  ss[iC]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC]]+1]['eq']['vN1'], ss[iC]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC]]+1]['eq']['vI1']  )
+
+        H2 = lambda iC1, iC2, iC: p*self.Phi(  ss[iC+1]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC+1]]+1]['eq']['vN2'] , ss[iC+1]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC+1]]+1]['eq']['vI2']  ) + (1-p) * self.Phi(  ss[iC]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC]]+1]['eq']['vN2'] , ss[iC]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC]]+1]['eq']['vI2']  )
+        
+        a = self.r1( self.C[ic1],self.C[ic2] ) - self.K(c) + self.beta * H1(ic,ic2,ic) #check
         b = self.beta * (   H1(ic,ic,ic) - H1(ic,ic2,ic)  ) #check
-        d = self.r1( self.C(ic1),self.C(ic2) )   + self.beta * p * self.Phi( ss(ic+1).EQs(ic1,ic2,h).eq.vN1 , ss(ic+1).EQs(ic1,ic2,h).eq.vI1  )
-        e = self.beta * H1(ic1,ic,ic)         - self.beta * p * self.Phi( ss(ic+1).EQs(ic1,ic2,h).eq.vN1 , ss(ic+1).EQs(ic1,ic2,h).eq.vI1  ) 
+        d = self.r1( self.C[ic1],self.C[ic2] )   + self.beta * p * self.Phi( ss[ic+1]['EQs'][ic1,ic2,h]['eq']['vN1'] , ss[ic+1]['EQs'][ic1,ic2,h]['eq']['vI1']  )
+        e = self.beta * H1(ic1,ic,ic)         - self.beta * p * self.Phi( ss[ic+1]['EQs'][ic1,ic2,h]['eq']['vN1'] , ss[ic+1]['EQs'][ic1,ic2,h]['eq']['vI1']  ) 
 
         pa = - self.beta * (1-p) * b
         pb = e + ( self.beta * (1-p) -1) * b - self.beta * (1-p) * a
         pc = d + ( self.beta * (1-p) -1 ) * a
 
         # Solve for p2 mixed strategy ... but also returns 1 and 0 for pure
-        pstar2 = lf.quad(pa,pb,pc)
+        pstar2 = self.quad(pa,pb,pc)
 
         A = self.r2(self.C(ic1),self.C(ic2)) - self.K(c) + self.beta * H2(ic1,ic,ic)
         B = self.beta * ( H2(ic,ic,ic) - H2(ic1,ic,ic) )
@@ -620,37 +616,43 @@ class leapfrogging:
         qb = E + ( self.beta * (1-p) - 1 ) * B - self.beta * (1-p) * A
         qc = D + ( self.beta * (1-p) - 1 ) * A
 
-        pstar1 = lf.quad(qa, qb, qc)
+        pstar1 = self.quad(qa, qb, qc)
 
 
-        count = -1 # changed to -1 from
-        for i in range(1,len(pstar1)):
-            for j in range(1,len(pstar2)):
-                if set([i,j]).issuperset(set([1,2])): # matlab code: all(ismember([i,j],[1,2]))
-                    exP1 = pc + pb * pstar2(j) + pa * pstar2(j)^2 < 0 # xxx self.pstar?
-                    exP2 = qc + qb * pstar1(i) + qa * pstar1(i)^2 < 0
+        count = 0 # changed to -1 from 0
+        for i in range(len(pstar1)):
+            for j in range(len(pstar2)):
+                if i in [0,1] and j in [0,1]: # set([i,j]).issuperset(set([1,2])): # matlab code: all(ismember([i,j],[1,2]))
+                    if  pc + pb * pstar2(j) + pa * pstar2(j)^2 < 0:
+                        exP1 = 1
+                    else:
+                        exP1 = 0
+                    if qc + qb * pstar1(i) + qa * pstar1(i)^2 < 0:
+                        exP2 = 1
+                    else:
+                        exP2 = 2
 
-                if abs(exP1 - pstar1(i)) < 1e-7 and abs(exP2-pstar2(j)) < 1e-7:
+                if abs(exP1 - pstar1[i]) < 1e-7 and abs(exP2-pstar2[j]) < 1e-7:
                     count += 1
-                    vI1 = a + b*pstar2(j)
-                    vN1 = (d + e*pstar2(j) + self.beta*q*(1-pstar2(j))*(a+b*pstar2(j)))*pstar1(i)+(1-pstar1(i))*(d+e*pstar2(j))/(1-self.beta*q*(1-pstar2(j)))
-                    vI2 = A + B*pstar1(i)
-                    vN2 = (D + E*pstar1(i) + self.beta*q*(1-pstar1(i))*(A+B*pstar1(i)))*pstar2(j)+(1-pstar2(j))*(D+E*pstar1(i))/(1-self.beta*q*(1-pstar1(i)))
+                    vI1 = a + b*pstar2[j]
+                    vN1 = (d + e*pstar2[j] + self.beta*q*(1-pstar2[j])*(a+b*pstar2[j]))*pstar1[i]+(1-pstar1[i])*(d+e*pstar2[j])/(1-self.beta*q*(1-pstar2[j]))
+                    vI2 = A + B*pstar1[i]
+                    vN2 = (D + E*pstar1[i] + self.beta*q*(1-pstar1[i])*(A+B*pstar1[i]))*pstar2[j]+(1-pstar2[j])*(D+E*pstar1[i])/(1-self.beta*q*(1-pstar1[i]))
 
-                    ss(ic).EQs(ic1, ic2, count).eq = self.EQ(pstar1(i),vN1,vI1,pstar2(j),vN2,vI2) # xx wut?
+                    ss(ic).EQs(ic1, ic2, count).eq = self.EQ(pstar1[i],vN1,vI1,pstar2[j],vN2,vI2) # xx wut?
                 
                 
-                elif i > 2 and j > 2 and pstar1(i) >= 0 and pstar2(j) >= 0 and pstar1(i) <= 1 and pstar2(j) <= 1:
+                elif i > 2 and j > 2 and pstar1[i] >= 0 and pstar2[j] >= 0 and pstar1[i] <= 1 and pstar2[j] <= 1:
                     count += 1
-                    v1 = a + b * pstar2(j)
-                    v2 = A + B * pstar1(i)
-                    ss(ic).EQs(ic1, ic2, count).eq = lf.EQ(pstar1(i),v1,v1,pstar2(j),v2,v2)
+                    v1 = a + b * pstar2[j]
+                    v2 = A + B * pstar1[i]
+                    ss[ic]['EQs'][ic1, ic2, count]['eq'] = self.EQ(pstar1[i],v1,v1,pstar2[j],v2,v2)
                     
             # end j loop
         # end i loop
 
-        # ss(ic).nEQ(ic1,ic2) = count # xxx wut? 
-        # ESS.bases(ESS.index(ic1,ic2,ic)) = count
+        ss[ic]['nEQ'][ic1,ic2] = count # xxx wut? 
+        ESS['bases'][ESS['index'][ic1,ic2,ic]] = count
 
         return ss, ESS # end find_interior
 
