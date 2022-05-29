@@ -17,7 +17,7 @@ class rls_class:
     def solve(self,G,ss,ESS0, stage_index):
 
         rlsp = {'maxEQ':np.NaN, 'print':np.NaN}
-        rlsp['maxEQ']  =  1 # 50000 maximum number of iterations
+        rlsp['maxEQ']  =  10 # 50000 maximum number of iterations
         rlsp['print']  =  10000  # 500 print every rlsp.print equilibria (0: no print, 1: print every, 2: print every second)
 
     #     % initialize matrices
@@ -42,21 +42,16 @@ class rls_class:
             # if nargout>2: # if there are less than 2 outputs xxx
             try:
                 np.insert(out,iEQ,self.output(ss, ESS[iEQ]))
-                print(f'we are in the try now at {iEQ} ')
             except:
                 pass
             ESS[iEQ+1] = self.addOne(copy.deepcopy(ESS[iEQ]))
-            print(f"ESS.bases {ESS[iEQ]['bases']} ")
-            print(f"ESS.esr {ESS[iEQ]['esr']} ")
             changeindex_temp = np.nonzero((ESS[iEQ+1]['esr']-ESS[iEQ]['esr'])!=0)[0]
             changeindex = min(changeindex_temp)
-            print(f'change index: {changeindex}')
             count_index = 0
             for i in stage_index:
                 if changeindex<=i:
                     count_index += 1
             tau = count_index-1 #% tau0 is found
-            print(f'tau after count: {tau}')
             if np.all(ESS[iEQ+1]['esr']==-1):
                 break
 

@@ -4,6 +4,7 @@
 important stuff to look at:
     everything that uses indexing might have to be -1
 """
+from tracemalloc import stop
 import numpy as np
 import matplotlib.pyplot as plt
 import numpy.matlib
@@ -69,35 +70,49 @@ class leapfrogging:
         print(f'tau in state_recursion: {tau}')
         print(f"bases in state_recusion: {ESS['bases']}")
         if tau == self.T:
+            print('in T')
             ss,ESS = self.solve_last_corner(ss.copy(),ESS.copy())
             tau -= 1
+            print('after:')
+            print(f"{ESS['bases']}")
         if tau == self.T -1:
+            print('in T-1')
             ss,ESS = self.solve_last_edge(ss.copy(),ESS.copy())
             tau -= 1
+            print('after:')
+            print(f"{ESS['bases']}")
         if tau == self.T -2:
+            print('in T-2')
             ss,ESS = self.solve_last_interior(ss.copy(),ESS.copy())
             tau -= 1
-        print(f"bases after T,-1,-2: {ESS['bases']}")
+            print('after:')
+            print(f"{ESS['bases']}")
+        
         dothis = 1
         while dothis == 1: # break when tau=0 
             if np.remainder(tau,3)==1: 
+                print('in mod==1')
                 ic = int(np.ceil((tau+2)/3)) - 1 # -1 for python indexing xxx
-                """
-                here so far
-                """
                 ss,ESS = self.solve_corner(ss.copy(),ic,ESS.copy())
                 tau -= 1
                 if tau == 0:
                     break
+                print('after:')
+                print(f"{ESS['bases']}")
             if np.remainder(tau,3)==0:
+                print('in mod==0')
                 ic = int(np.ceil((tau+2)/3)) - 1 # python starts at 0
                 ss, ESS = self.solve_edge(ss.copy(),ic,ESS.copy())
                 tau -= 1
+                print('after:')
+                print(f"{ESS['bases']}")
             if np.remainder(tau,3) == 2:
                 print('in mod==2')
                 ic = int(np.ceil((tau+2)/3)) - 1 # python starts at 0
                 ss, ESS = self.solve_interior(ss.copy(),ic,ESS.copy())
                 tau -= 1
+                print('after:')
+                print(f"{ESS['bases']}")
         # end of the scary while loop
         return ss, ESS
     
@@ -353,7 +368,7 @@ class leapfrogging:
                 # what is g1 xxx
                 a = self.r1(self.C[ic1], self.C[ic2]) - self.K(c) + self.beta*g1(ic, ic2, ic) #check
                 b = self.beta*(g1(ic, ic, ic)-g1(ic, ic2, ic)) # check
-                d = self.r1(self.C[ic],self.C[ic2])
+                d = self.r1(self.C[ic1],self.C[ic2])
                 e = self.beta*g1(ic1, ic, ic)
 
 
@@ -409,6 +424,7 @@ class leapfrogging:
                                     count += 1
                                     vI1 = a + b*pstar2[j] 
                                     vN1 = (d + e*pstar2[j] + self.beta*(1-pstar2[j])*(a+b*pstar2[j]))*pstar1[i] + (1-pstar1[i])*(d+e*pstar2[j])/(1-self.beta*(1-pstar2[j]))
+
                                     vI2 = A + B*pstar1[i]; 
                                     vN2 = (D + E*pstar1[i] + self.beta*(1-pstar1[i])*(A+B*pstar1[i]))*pstar2[j] + (1-pstar2[j])*(D+E*pstar1[i])/(1-self.beta*(1-pstar1[i]))
 
@@ -548,16 +564,21 @@ class leapfrogging:
 
 
     def solve_interior(self,ss,ic,ESS):
+        print('xxx here we go:')
         # % INPUT 
         # % ss is state space structure with solutions for final layer edge and
         # % corner
         # % ic is the level of technology for which to solve
         # % ESS is struc with information holding ESS.esr being equilibrium selection
         # % rule and ESS.bases being the bases of the ESS.esr's
-        
+        test_i = 0
         c = self.C[ic]
         for ic1 in range(ic):
             for ic2 in range(ic):
+                print('yup x2x')
+                print(ic1,ic2,ic,c)
+                test_i += 1
+                print(f'test_i: {test_i}')
                 ss,ESS = self.find_interior(ss,ic1,ic2,ic,c,ESS)
         return ss, ESS
     
@@ -600,15 +621,12 @@ class leapfrogging:
         d = self.r1( self.C[ic1],self.C[ic2] )   + self.beta * p * self.Phi( ss[ic+1]['EQs'][ic1,ic2,h]['eq']['vN1'] , ss[ic+1]['EQs'][ic1,ic2,h]['eq']['vI1']  )
         e = self.beta * H1(ic1,ic,ic)         - self.beta * p * self.Phi( ss[ic+1]['EQs'][ic1,ic2,h]['eq']['vN1'] , ss[ic+1]['EQs'][ic1,ic2,h]['eq']['vI1']  ) 
 
-        print('All the variables:')
-        print(a,b,d,e)
-        break
-
         pa = - self.beta * (1-p) * b
         pb = e + ( self.beta * (1-p) -1) * b - self.beta * (1-p) * a
         pc = d + ( self.beta * (1-p) -1 ) * a
 
         # Solve for p2 mixed strategy ... but also returns 1 and 0 for pure
+        # xxx pstar 2 wrong
         pstar2 = self.quad(pa,pb,pc)
 
         A = self.r2(self.C[ic1],self.C[ic2]) - self.K(c) + self.beta * H2(ic1,ic,ic)
@@ -622,6 +640,7 @@ class leapfrogging:
         qb = E + ( self.beta * (1-p) - 1 ) * B - self.beta * (1-p) * A
         qc = D + ( self.beta * (1-p) - 1 ) * A
 
+        # xxx pstar1 wrong 
         pstar1 = self.quad(qa, qb, qc)
 
 
@@ -640,26 +659,42 @@ class leapfrogging:
                         exP2 = 0
 
                 if abs(exP1 - pstar1[i]) < 1e-7 and abs(exP2-pstar2[j]) < 1e-7:
+                    print('in first if')
                     count += 1
                     vI1 = a + b*pstar2[j]
                     vN1 = (d + e*pstar2[j] + self.beta*q*(1-pstar2[j])*(a+b*pstar2[j]))*pstar1[i]+(1-pstar1[i])*(d+e*pstar2[j])/(1-self.beta*q*(1-pstar2[j]))
                     vI2 = A + B*pstar1[i]
+                    # xxx vN2 is wrong
                     vN2 = (D + E*pstar1[i] + self.beta*q*(1-pstar1[i])*(A+B*pstar1[i]))*pstar2[j]+(1-pstar2[j])*(D+E*pstar1[i])/(1-self.beta*q*(1-pstar1[i]))
 
                     ss[ic]['EQs'][ic1, ic2, count]['eq'] = self.EQ(pstar1[i],vN1,vI1,pstar2[j],vN2,vI2) # xx wut?
-                
+                    print('variables 1:')
+                    print(pstar1[i])
+                    print(pstar2[j])
+                    print(vI1)
+                    print(vN1)
+                    print(vI2)
+                    print(vN2)
                 
                 elif i > 1 and j > 1 and pstar1[i] >= 0 and pstar2[j] >= 0 and pstar1[i] <= 1 and pstar2[j] <= 1: # maybe i and j bigger than 2 (changed to 1)
+                    print('in elif')
                     count += 1
                     v1 = a + b * pstar2[j]
                     v2 = A + B * pstar1[i]
                     ss[ic]['EQs'][ic1, ic2, count]['eq'] = self.EQ(pstar1[i],v1,v1,pstar2[j],v2,v2)
+                    print('variables 2:')
+                    print(pstar1[i])
+                    print(pstar2[j])
+                    print(v1)
+                    print(v2)
                     
             # end j loop
         # end i loop
 
         ss[ic]['nEQ'][ic1,ic2] = count # xxx wut? 
         ESS['bases'][ESS['index'][ic1,ic2,ic]] = count
+
+        print(f"ss: {ss[ic]['EQs'][ic1, ic2, count]['eq'] } ")
 
         return ss, ESS # end find_interior
 
