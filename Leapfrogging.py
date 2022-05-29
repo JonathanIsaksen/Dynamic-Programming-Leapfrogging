@@ -565,8 +565,8 @@ class leapfrogging:
         # % INPUT
         # % ss is state space
         # % mp and cost holds global parameters
-        # % ic1 and ic2 are indexes for player 1 and player 2 such that mp.C(ic1)
-        # % and mp.C(ic2) are marginal cost of the players
+        # % ic1 and ic2 are indexes for player 1 and player 2 such that mp.C[ic1]
+        # % and mp.C[ic2] are marginal cost of the players
         # % k is the level of technology
         # % c=mp.C(k) state of the art marginal cost ... could be found inside
         # % function
@@ -600,6 +600,10 @@ class leapfrogging:
         d = self.r1( self.C[ic1],self.C[ic2] )   + self.beta * p * self.Phi( ss[ic+1]['EQs'][ic1,ic2,h]['eq']['vN1'] , ss[ic+1]['EQs'][ic1,ic2,h]['eq']['vI1']  )
         e = self.beta * H1(ic1,ic,ic)         - self.beta * p * self.Phi( ss[ic+1]['EQs'][ic1,ic2,h]['eq']['vN1'] , ss[ic+1]['EQs'][ic1,ic2,h]['eq']['vI1']  ) 
 
+        print('All the variables:')
+        print(a,b,d,e)
+        break
+
         pa = - self.beta * (1-p) * b
         pb = e + ( self.beta * (1-p) -1) * b - self.beta * (1-p) * a
         pc = d + ( self.beta * (1-p) -1 ) * a
@@ -607,10 +611,12 @@ class leapfrogging:
         # Solve for p2 mixed strategy ... but also returns 1 and 0 for pure
         pstar2 = self.quad(pa,pb,pc)
 
-        A = self.r2(self.C(ic1),self.C(ic2)) - self.K(c) + self.beta * H2(ic1,ic,ic)
+        A = self.r2(self.C[ic1],self.C[ic2]) - self.K(c) + self.beta * H2(ic1,ic,ic)
         B = self.beta * ( H2(ic,ic,ic) - H2(ic1,ic,ic) )
-        D = self.r2(self.C(ic1),self.C(ic2)) + self.beta * p * self.Phi( ss(ic+1).EQs(ic1,ic2,h).eq.vN2 , ss(ic+1).EQs(ic1,ic2,h).eq.vI2 )
-        E = self.beta * H2(ic,ic2,ic) - self.beta * p * self.Phi( ss(ic+1).EQs(ic1,ic2,h).eq.vN2 , ss(ic+1).EQs(ic1,ic2,h).eq.vI2 )
+        D = self.r2(self.C[ic1],self.C[ic2]) + self.beta * p * self.Phi( ss[ic+1]['EQs'][ic1,ic2,h]['eq']['vN2'] , ss[ic+1]['EQs'][ic1,ic2,h]['eq']['vI2'] )
+        E = self.beta * H2(ic,ic2,ic) - self.beta * p * self.Phi( ss[ic+1]['EQs'][ic1,ic2,h]['eq']['vN2'] , ss[ic+1]['EQs'][ic1,ic2,h]['eq']['vI2'] )
+
+
 
         qa = - self.beta * (1-p) * B
         qb = E + ( self.beta * (1-p) - 1 ) * B - self.beta * (1-p) * A
@@ -619,18 +625,19 @@ class leapfrogging:
         pstar1 = self.quad(qa, qb, qc)
 
 
+
         count = 0 # changed to -1 from 0
         for i in range(len(pstar1)):
             for j in range(len(pstar2)):
                 if i in [0,1] and j in [0,1]: # set([i,j]).issuperset(set([1,2])): # matlab code: all(ismember([i,j],[1,2]))
-                    if  pc + pb * pstar2(j) + pa * pstar2(j)^2 < 0:
+                    if  pc + pb * pstar2[j] + pa * pstar2[j]**2 < 0:
                         exP1 = 1
                     else:
                         exP1 = 0
-                    if qc + qb * pstar1(i) + qa * pstar1(i)^2 < 0:
+                    if qc + qb * pstar1[i] + qa * pstar1[i]**2 < 0:
                         exP2 = 1
                     else:
-                        exP2 = 2
+                        exP2 = 0
 
                 if abs(exP1 - pstar1[i]) < 1e-7 and abs(exP2-pstar2[j]) < 1e-7:
                     count += 1
@@ -639,10 +646,10 @@ class leapfrogging:
                     vI2 = A + B*pstar1[i]
                     vN2 = (D + E*pstar1[i] + self.beta*q*(1-pstar1[i])*(A+B*pstar1[i]))*pstar2[j]+(1-pstar2[j])*(D+E*pstar1[i])/(1-self.beta*q*(1-pstar1[i]))
 
-                    ss(ic).EQs(ic1, ic2, count).eq = self.EQ(pstar1[i],vN1,vI1,pstar2[j],vN2,vI2) # xx wut?
+                    ss[ic]['EQs'][ic1, ic2, count]['eq'] = self.EQ(pstar1[i],vN1,vI1,pstar2[j],vN2,vI2) # xx wut?
                 
                 
-                elif i > 2 and j > 2 and pstar1[i] >= 0 and pstar2[j] >= 0 and pstar1[i] <= 1 and pstar2[j] <= 1:
+                elif i > 1 and j > 1 and pstar1[i] >= 0 and pstar2[j] >= 0 and pstar1[i] <= 1 and pstar2[j] <= 1: # maybe i and j bigger than 2 (changed to 1)
                     count += 1
                     v1 = a + b * pstar2[j]
                     v2 = A + B * pstar1[i]
