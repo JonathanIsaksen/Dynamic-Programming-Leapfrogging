@@ -83,6 +83,7 @@ class leapfrogging:
         if tau == self.T -2:
             print('in T-2')
             ss,ESS = self.solve_last_interior(ss.copy(),ESS.copy())
+
             tau -= 1
             print('after:')
             print(f"{ESS['bases']}")
@@ -98,6 +99,7 @@ class leapfrogging:
                     break
                 print('after:')
                 print(f"{ESS['bases']}")
+                print(ss[2+1]['EQs'][2, 2, ESS['esr'][ESS['index'][2,2,2+1]]]['eq'])
             if np.remainder(tau,3)==0:
                 print('in mod==0')
                 ic = int(np.ceil((tau+2)/3)) - 1 # python starts at 0
@@ -180,8 +182,8 @@ class leapfrogging:
                 for ic2 in range(ic+1):
                     ess['index'][ic1,ic2,ic]  =  int(self.essindex(N,ic1,ic2,ic) -1)
                     # % N*(N+1)*(2*N+1)/6 = sum(1^2 + 2^2 + 3^2 + ... + N^2)
-                    ess['esr'] = np.zeros(int(N*(N+1)*(2*N+1)/6),dtype=int)
-                    ess['bases'] = np.ones(int(N*(N+1)*(2*N+1)/6),dtype=int)
+                    ess['esr'] = np.full((1, int(N*(N+1)*(2*N+1)/6)), int(-1))[0]
+                    ess['bases'] = np.zeros(int(N*(N+1)*(2*N+1)/6),dtype=int)
                     # %ess.n = 1:(N*(N+1)*(2*N+1)/6)
 
         return ess
@@ -269,8 +271,8 @@ class leapfrogging:
         # wtf is happening here xx
         ss[h]['EQs'][h,h,0]['eq'] = self.EQ(P1,vN1,vI1,P2,vN2,vI2) # changed to 0
         # Only one equilibrium is possible:
-        ss[h]['nEQ'][h,h] = 1 # xxx changed to 0 from 1
-        ESS['bases'][ESS['index'][h,h,h]] = 1 # xxx changed to 0 from 1
+        ss[h]['nEQ'][h,h] = 0 # xxx changed to 0 from 1
+        ESS['bases'][ESS['index'][h,h,h]] = 0 # xxx changed to 0 from 1
         return ss, ESS
 
     def solve_last_edge(self,ss,ESS):
@@ -316,8 +318,8 @@ class leapfrogging:
 
             ss[ic]['EQs'][ic1,ic,h]['eq'] = self.EQ(P1,vN1,vI1,P2,vN2,vI2)
 
-            ss[ic]['nEQ'][ic1,ic] = 1 # xxx changed to 0 from 1
-            ESS['bases'][ESS['index'][ic1,ic,ic]] = 1 # xxx changed to 0 from 1
+            ss[ic]['nEQ'][ic1,ic] = 0 # xxx changed to 0 from 1
+            ESS['bases'][ESS['index'][ic1,ic,ic]] = 0 # xxx changed to 0 from 1
         
         # xxx maybe start at 0?
         # Player 1 is at the edge s=(x1,x2,c) with x1=c=min(mp.C) and x2>c
@@ -335,12 +337,12 @@ class leapfrogging:
 
             # wtf is happening here xx
             
-            ss[ic]['nEQ'][ic1,ic] = 1 # xxx changed to 0 from 1
-            ESS['bases'][ESS['index'][ic1,ic,ic]] = 1 # xxx changed to 0 from 1
+            ss[ic]['nEQ'][ic1,ic] = 0 # xxx changed to 0 from 1
+            ESS['bases'][ESS['index'][ic1,ic,ic]] = 0 # xxx changed to 0 from 1
 
             ss[ic]['EQs'][ic, ic2, 0]['eq'] = self.EQ(P1, vN1, vI1, P2, vN2, vI2) # changed to 0
-            ss[ic]['nEQ'][ic, ic2] = 1 # maybe 0 here xxx
-            ESS['bases'][ESS['index'][ic,ic2,ic]] = 1 # xxx changed to 0 from 1
+            ss[ic]['nEQ'][ic, ic2] = 0 # maybe 0 here xxx
+            ESS['bases'][ESS['index'][ic,ic2,ic]] = 0 # xxx changed to 0 from 1
         
         return ss,ESS
     """
@@ -359,8 +361,11 @@ class leapfrogging:
         I think they just find whether investing or not investing gives highest utility
         """
         # removed +1 from iC1, iC2, +1 ESS ... not sure why as that shouldn't fix it
-        g1 = lambda iC1, iC2, iC: np.maximum(ss[iC]['EQs'][iC1, iC2,ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vN1'],ss[iC]['EQs'][iC1, iC2,ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vI1'])
-        g2 = lambda iC1, iC2, iC: np.maximum(ss[iC]['EQs'][iC1, iC2,ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vN2'],ss[iC]['EQs'][iC1, iC2,ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vI2'])
+
+        # g1 = lambda iC1, iC2, iC: np.maximum(ss[iC]['EQs'][iC1, iC2, 1+ ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vN1'],ss[iC]['EQs'][iC1, iC2, 1+ ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vI1'])
+        # g2 = lambda iC1, iC2, iC: np.maximum(ss[iC]['EQs'][iC1, iC2, 1+ ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vN2'],ss[iC]['EQs'][iC1, iC2, 1+ ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vI2'])
+        g1 = lambda iC1, iC2, iC: np.maximum(ss[iC]['EQs'][iC1, iC2, 1+ ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vN1'],ss[iC]['EQs'][iC1, iC2, 1+ ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vI1'])
+        g2 = lambda iC1, iC2, iC: np.maximum(ss[iC]['EQs'][iC1, iC2, 1+ ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vN2'],ss[iC]['EQs'][iC1, iC2, 1+ ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vI2'])
 
 
         for ic1 in range(ic): #Player 1 loop begin # xxx maybe ad -1
@@ -444,8 +449,8 @@ class leapfrogging:
                             # end if i in [0,1]...
                         # no more j loop
                 # no more i loop    
-                ss[ic]['nEQ'][ic1, ic2] = count
-                ESS['bases'][ESS['index'][ic1,ic2,ic]] = count
+                ss[ic]['nEQ'][ic1, ic2] = count -1 
+                ESS['bases'][ESS['index'][ic1,ic2,ic]] = count -1 # added minus 1
         return ss, ESS # end of solve_last_interior
 
     def  solve_corner(self,ss,ic,ESS):
@@ -491,8 +496,8 @@ class leapfrogging:
 
         # % Create output for return
         ss[ic]['EQs'][ic,ic,0]['eq'] = self.EQ(P1, vN1, vI1, P2, vN2 , vI2) # changed to 0
-        ss[ic]['nEQ'][ic,ic] = 1 # xxx changed to 0 from 1
-        ESS['bases'][ESS['index'][ic,ic,ic]] = 1 # xxx changed to 0 from 1
+        ss[ic]['nEQ'][ic,ic] = 0 # xxx changed to 0 from 1
+        ESS['bases'][ESS['index'][ic,ic,ic]] = 0 # xxx changed to 0 from 1
         # % No update of ESS.bases is necessary in principle: "there can BE ONLY ONE
         # % equilibrium"  https://www.youtube.com/watch?v=sqcLjcSloXs
         return ss,ESS
@@ -525,12 +530,11 @@ class leapfrogging:
         # H2 = @(iC1, iC2, iC) p*mp.Phi(ss(iC+1).EQs(iC1, iC2, ESS.esr(ESS.index(iC1,iC2,iC+1))+1).eq.vN2,ss(iC+1).EQs(iC1, iC2, ESS.esr(ESS.index(iC1,iC2,iC+1))+1).eq.vI2) + (1-p)*mp.Phi(ss(iC).EQs(iC1, iC2, ESS.esr(ESS.index(iC1,iC2,iC))+1).eq.vN2,ss(iC).EQs(iC1, iC2, ESS.esr(ESS.index(iC1,iC2,iC))+1).eq.vI2);
         # removed +1 for some reason
 
-        # H1 = lambda iC1, iC2, iC: p*self.Phi(ss[iC+1]['EQs'][iC1, iC2, 1+ ESS['esr'][ESS['index'][iC1,iC2,iC+1]]]['eq']['vN1'],ss[iC+1]['EQs'][iC1, iC2, 1+ ESS['esr'][ESS['index'][iC1,iC2,iC+1]]]['eq']['vI1']) + (1-p)*self.Phi(ss[iC]['EQs'][iC1, iC2, 1+ ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vN1'],ss[iC]['EQs'][iC1, iC2, 1+ ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vI1'])
-        # H2 = lambda iC1, iC2, iC: p*self.Phi(ss[iC+1]['EQs'][iC1, iC2, 1+ ESS['esr'][ESS['index'][iC1,iC2,iC+1]]]['eq']['vN2'],ss[iC+1]['EQs'][iC1, iC2, 1+ ESS['esr'][ESS['index'][iC1,iC2,iC+1]]]['eq']['vI2']) + (1-p)*self.Phi(ss[iC]['EQs'][iC1, iC2, 1+ ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vN2'],ss[iC]['EQs'][iC1, iC2, 1+ ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vI2'])
+        H1 = lambda iC1, iC2, iC: p*self.Phi(ss[iC+1]['EQs'][iC1, iC2, 1+ ESS['esr'][ESS['index'][iC1,iC2,iC+1]]]['eq']['vN1'],ss[iC+1]['EQs'][iC1, iC2, 1+ ESS['esr'][ESS['index'][iC1,iC2,iC+1]]]['eq']['vI1']) + (1-p)*self.Phi(ss[iC]['EQs'][iC1, iC2, 1+ ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vN1'],ss[iC]['EQs'][iC1, iC2, 1+ ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vI1'])
+        H2 = lambda iC1, iC2, iC: p*self.Phi(ss[iC+1]['EQs'][iC1, iC2, 1+ ESS['esr'][ESS['index'][iC1,iC2,iC+1]]]['eq']['vN2'],ss[iC+1]['EQs'][iC1, iC2, 1+ ESS['esr'][ESS['index'][iC1,iC2,iC+1]]]['eq']['vI2']) + (1-p)*self.Phi(ss[iC]['EQs'][iC1, iC2, 1+ ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vN2'],ss[iC]['EQs'][iC1, iC2, 1+ ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vI2'])
 
-        H1 = lambda iC1, iC2, iC: p*self.Phi(ss[iC+1]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC+1]]]['eq']['vN1'],ss[iC+1]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC+1]]]['eq']['vI1']) + (1-p)*self.Phi(ss[iC]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vN1'],ss[iC]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vI1'])
-        H2 = lambda iC1, iC2, iC: p*self.Phi(ss[iC+1]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC+1]]]['eq']['vN2'],ss[iC+1]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC+1]]]['eq']['vI2']) + (1-p)*self.Phi(ss[iC]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vN2'],ss[iC]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vI2'])
-
+        # H1 = lambda iC1, iC2, iC: p*self.Phi(ss[iC+1]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC+1]]]['eq']['vN1'],ss[iC+1]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC+1]]]['eq']['vI1']) + (1-p)*self.Phi(ss[iC]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vN1'],ss[iC]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vI1'])
+        # H2 = lambda iC1, iC2, iC: p*self.Phi(ss[iC+1]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC+1]]]['eq']['vN2'],ss[iC+1]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC+1]]]['eq']['vI2']) + (1-p)*self.Phi(ss[iC]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vN2'],ss[iC]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vI2'])
 
         # % Efficiency ... why evaluate the call for each run of following loop? i is
         # % constant in domain outside loop!! What changes in the function is the
@@ -544,25 +548,25 @@ class leapfrogging:
             # % First calculate vI1 depending only on known factors ... no uncertainty about Player 2 because he is at the edge
             vI1 = self.r1(c1,c) - self.K(c) + self.beta*H1(ic,ic,ic)
 
-            # vN1search = lambda z: self.r1(c1,c) + self.beta*(p*max(ss[ic+1]['EQs'][ic1,ic,ESS['esr'][ESS['index'][ic1,ic,ic+1]]+1]['eq']['vN1'], ss[ic+1]['EQs'][ic1, ic, ESS['esr'][ESS['index'][ic1,ic,ic+1]]+1]['eq']['vI1'])+(1-p)*max(z,vI1)) - z
+            vN1search = lambda z: self.r1(c1,c) + self.beta*(p*max(ss[ic+1]['EQs'][ic1,ic,ESS['esr'][ESS['index'][ic1,ic,ic+1]]+1]['eq']['vN1'], ss[ic+1]['EQs'][ic1, ic, ESS['esr'][ESS['index'][ic1,ic,ic+1]]+1]['eq']['vI1'])+(1-p)*max(z,vI1)) - z
             # removed +1
-            vN1search = lambda z: self.r1(c1,c) + self.beta*(p*max(ss[ic+1]['EQs'][ic1,ic,ESS['esr'][ESS['index'][ic1,ic,ic+1]]]['eq']['vN1'], ss[ic+1]['EQs'][ic1, ic, ESS['esr'][ESS['index'][ic1,ic,ic+1]]]['eq']['vI1'])+(1-p)*max(z,vI1)) - z
+            # vN1search = lambda z: self.r1(c1,c) + self.beta*(p*max(ss[ic+1]['EQs'][ic1,ic,ESS['esr'][ESS['index'][ic1,ic,ic+1]]]['eq']['vN1'], ss[ic+1]['EQs'][ic1, ic, ESS['esr'][ESS['index'][ic1,ic,ic+1]]]['eq']['vI1'])+(1-p)*max(z,vI1)) - z
 
             vN1 = optimize.fsolve(vN1search,0)
             P1 = vI1 > vN1
 
             # 
-            # vN2 = (self.r2(c1,c) + self.beta*(P1*H2(ic,ic,ic)+(1-P1)*(p*self.Phi(ss[ic+1]['EQs'][ic1, ic,ESS['esr'][ESS['index'][ic1,ic,ic+1]]+1]['eq']['vN2'],ss[ic+1]['EQs'][ic1, ic,ESS['esr'][ESS['index'][ic1,ic,ic+1]]+1]['eq']['vI2']) + (1-p)*self.Phi(0,-self.K(c)))))/(1-self.beta*(1-P1)*(1-p))
+            vN2 = (self.r2(c1,c) + self.beta*(P1*H2(ic,ic,ic)+(1-P1)*(p*self.Phi(ss[ic+1]['EQs'][ic1, ic,ESS['esr'][ESS['index'][ic1,ic,ic+1]]+1]['eq']['vN2'],ss[ic+1]['EQs'][ic1, ic,ESS['esr'][ESS['index'][ic1,ic,ic+1]]+1]['eq']['vI2']) + (1-p)*self.Phi(0,-self.K(c)))))/(1-self.beta*(1-P1)*(1-p))
             # removed +1
-            vN2 = (self.r2(c1,c) + self.beta*(P1*H2(ic,ic,ic)+(1-P1)*(p*self.Phi(ss[ic+1]['EQs'][ic1, ic,ESS['esr'][ESS['index'][ic1,ic,ic+1]]]['eq']['vN2'],ss[ic+1]['EQs'][ic1, ic,ESS['esr'][ESS['index'][ic1,ic,ic+1]]]['eq']['vI2']) + (1-p)*self.Phi(0,-self.K(c)))))/(1-self.beta*(1-P1)*(1-p))
+            # vN2 = (self.r2(c1,c) + self.beta*(P1*H2(ic,ic,ic)+(1-P1)*(p*self.Phi(ss[ic+1]['EQs'][ic1, ic,ESS['esr'][ESS['index'][ic1,ic,ic+1]]]['eq']['vN2'],ss[ic+1]['EQs'][ic1, ic,ESS['esr'][ESS['index'][ic1,ic,ic+1]]]['eq']['vI2']) + (1-p)*self.Phi(0,-self.K(c)))))/(1-self.beta*(1-P1)*(1-p))
 
 
             vI2 = vN2 - self.K(c)
             P2 = vI2 > vN2
 
             ss[ic]['EQs'][ic1,ic,0]['eq'] = self.EQ(P1, vN1, vI1, P2, vN2, vI2) # changed to 0
-            ss[ic]['nEQ'][ic1,ic] = 1 # xxx changed to 0 from 1
-            ESS['bases'][ESS['index'][ic1,ic,ic]] = 1 # xxx changed to 0 from 1
+            ss[ic]['nEQ'][ic1,ic] = 0 # xxx changed to 0 from 1
+            ESS['bases'][ESS['index'][ic1,ic,ic]] = 0 # xxx changed to 0 from 1
             # end % Exit player 1 not at edge loop
 
 
@@ -574,30 +578,37 @@ class leapfrogging:
 
             # xxx vI2 is broken
             vI2 = self.r2(c,c2) - self.K(c) + self.beta*H2(ic,ic,ic)
+            iC1 = ic
+            iC2 = ic
+            iC = ic
+            print('parts of H2:')
+            print(ESS['index'][:,:,0])
+            print(ESS['esr'][ESS['index'][iC1,iC2,iC+1]])
+            print(ss[iC+1]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC+1]]]['eq'])
             print('variables: ')
             print(self.r2(c,c2))
             print(self.K(c))
             print(self.beta*H2(ic,ic,ic))
 
-            # vN2search = lambda z: self.r2(c,c2) + self.beta*(p*max(ss[ic+1]['EQs'][ic, ic2,ESS['esr'][ESS['index'][ic,ic2,ic+1]]+1]['eq']['vN2'], ss[ic+1]['EQs'][ic, ic2, ESS['esr'][ESS['index'][ic,ic2,ic+1]]+1]['eq']['vI2']) + (1-p)*max(z,vI2)) - z
+            vN2search = lambda z: self.r2(c,c2) + self.beta*(p*max(ss[ic+1]['EQs'][ic, ic2,ESS['esr'][ESS['index'][ic,ic2,ic+1]]+1]['eq']['vN2'], ss[ic+1]['EQs'][ic, ic2, ESS['esr'][ESS['index'][ic,ic2,ic+1]]+1]['eq']['vI2']) + (1-p)*max(z,vI2)) - z
             #removed 1
-            vN2search = lambda z: self.r2(c,c2) + self.beta*(p*max(ss[ic+1]['EQs'][ic, ic2,ESS['esr'][ESS['index'][ic,ic2,ic+1]]]['eq']['vN2'], ss[ic+1]['EQs'][ic, ic2, ESS['esr'][ESS['index'][ic,ic2,ic+1]]]['eq']['vI2']) + (1-p)*max(z,vI2)) - z
+            # vN2search = lambda z: self.r2(c,c2) + self.beta*(p*max(ss[ic+1]['EQs'][ic, ic2,ESS['esr'][ESS['index'][ic,ic2,ic+1]]]['eq']['vN2'], ss[ic+1]['EQs'][ic, ic2, ESS['esr'][ESS['index'][ic,ic2,ic+1]]]['eq']['vI2']) + (1-p)*max(z,vI2)) - z
 
             
             vN2 = optimize.fsolve(vN2search,0)
             P2 = vI2 > vN2
 
-            # vN1 = (self.r1(c,c2) + self.beta*(P2*H1(ic,ic,ic)+(1-P2)*(p*self.Phi(ss[ic+1]['EQs'][ic, ic2, ESS['esr'][ESS['index'][ic,ic2,ic+1]]+1]['eq']['vN1'],ss[ic+1]['EQs'][ic, ic2, ESS['esr'][ESS['index'][ic,ic2,ic+1]]+1]['eq']['vI1'])+(1-p)*self.Phi(0,-self.K(c)))))/(1-self.beta*(1-P2)*(1-p))
+            vN1 = (self.r1(c,c2) + self.beta*(P2*H1(ic,ic,ic)+(1-P2)*(p*self.Phi(ss[ic+1]['EQs'][ic, ic2, ESS['esr'][ESS['index'][ic,ic2,ic+1]]+1]['eq']['vN1'],ss[ic+1]['EQs'][ic, ic2, ESS['esr'][ESS['index'][ic,ic2,ic+1]]+1]['eq']['vI1'])+(1-p)*self.Phi(0,-self.K(c)))))/(1-self.beta*(1-P2)*(1-p))
             # removed +1 from index
-            vN1 = (self.r1(c,c2) + self.beta*(P2*H1(ic,ic,ic)+(1-P2)*(p*self.Phi(ss[ic+1]['EQs'][ic, ic2, ESS['esr'][ESS['index'][ic,ic2,ic+1]]]['eq']['vN1'],ss[ic+1]['EQs'][ic, ic2, ESS['esr'][ESS['index'][ic,ic2,ic+1]]]['eq']['vI1'])+(1-p)*self.Phi(0,-self.K(c)))))/(1-self.beta*(1-P2)*(1-p))
+            # vN1 = (self.r1(c,c2) + self.beta*(P2*H1(ic,ic,ic)+(1-P2)*(p*self.Phi(ss[ic+1]['EQs'][ic, ic2, ESS['esr'][ESS['index'][ic,ic2,ic+1]]]['eq']['vN1'],ss[ic+1]['EQs'][ic, ic2, ESS['esr'][ESS['index'][ic,ic2,ic+1]]]['eq']['vI1'])+(1-p)*self.Phi(0,-self.K(c)))))/(1-self.beta*(1-P2)*(1-p))
 
 
             vI1 = vN1-self.K(c)
             P1 = vI1 > vN1
 
             ss[ic]['EQs'][ic,ic2,0]['eq'] = self.EQ(P1, vN1, vI1, P2, vN2, vI2) # changed to 0
-            ss[ic]['nEQ'][ic,ic2] = 1 # xxx changed to 0 from 1
-            ESS['bases'][ESS['index'][ic,ic2,ic]] = 1 # xxx changed to 0 from 1
+            ss[ic]['nEQ'][ic,ic2] = 0 # xxx changed to 0 from 1
+            ESS['bases'][ESS['index'][ic,ic2,ic]] = 0 # xxx changed to 0 from 1
 
             print(ss[ic]['EQs'][ic,ic2,0]['eq'])
         # % No update of ESS.bases is necessary: "there can BE ONLY ONE
@@ -658,10 +669,13 @@ class leapfrogging:
         # H2 = lambda iC1, iC2, iC: p*self.Phi(  ss(iC+1).EQs(iC1, iC2, ESS.esr(ESS.index(iC1,iC2,iC+1))+1).eq.vN2 , ss(iC+1).EQs(iC1, iC2, ESS.esr(ESS.index(iC1,iC2,iC+1))+1).eq.vI2  ) + (1-p) * self.Phi(  ss(iC).EQs(iC1, iC2, ESS.esr(ESS.index(iC1,iC2,iC))+1).eq.vN2 , ss(iC).EQs(iC1, iC2, ESS.esr(ESS.index(iC1,iC2,iC))+1).eq.vI2  )
 
         # removed +1 ESS...
-        H1 = lambda iC1, iC2, iC: p*self.Phi(  ss[iC+1]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC+1]]]['eq']['vN1'], ss[iC+1]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC+1]]]['eq']['vI1']  ) + (1-p)*self.Phi(  ss[iC]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vN1'], ss[iC]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vI1']  )
-
-        H2 = lambda iC1, iC2, iC: p*self.Phi(  ss[iC+1]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC+1]]]['eq']['vN2'], ss[iC+1]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC+1]]]['eq']['vI2']  ) + (1-p)*self.Phi(  ss[iC]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vN2'], ss[iC]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vI2']  )
+        # H1 = lambda iC1, iC2, iC: p*self.Phi(  ss[iC+1]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC+1]]]['eq']['vN1'], ss[iC+1]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC+1]]]['eq']['vI1']  ) + (1-p)*self.Phi(  ss[iC]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vN1'], ss[iC]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vI1']  )
+        # H2 = lambda iC1, iC2, iC: p*self.Phi(  ss[iC+1]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC+1]]]['eq']['vN2'], ss[iC+1]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC+1]]]['eq']['vI2']  ) + (1-p)*self.Phi(  ss[iC]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vN2'], ss[iC]['EQs'][iC1, iC2, ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vI2']  )
         
+        H1 = lambda iC1, iC2, iC: p*self.Phi(  ss[iC+1]['EQs'][iC1, iC2, 1+ ESS['esr'][ESS['index'][iC1,iC2,iC+1]]]['eq']['vN1'], ss[iC+1]['EQs'][iC1, iC2, 1+ ESS['esr'][ESS['index'][iC1,iC2,iC+1]]]['eq']['vI1']  ) + (1-p)*self.Phi(  ss[iC]['EQs'][iC1, iC2, 1+ ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vN1'], ss[iC]['EQs'][iC1, iC2, 1+ ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vI1']  )
+        H2 = lambda iC1, iC2, iC: p*self.Phi(  ss[iC+1]['EQs'][iC1, iC2, 1+ ESS['esr'][ESS['index'][iC1,iC2,iC+1]]]['eq']['vN2'], ss[iC+1]['EQs'][iC1, iC2, 1+ ESS['esr'][ESS['index'][iC1,iC2,iC+1]]]['eq']['vI2']  ) + (1-p)*self.Phi(  ss[iC]['EQs'][iC1, iC2, 1+ ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vN2'], ss[iC]['EQs'][iC1, iC2, 1+ ESS['esr'][ESS['index'][iC1,iC2,iC]]]['eq']['vI2']  )
+        
+
         a = self.r1( self.C[ic1],self.C[ic2] ) - self.K(c) + self.beta * H1(ic,ic2,ic) #check
         b = self.beta * (   H1(ic,ic,ic) - H1(ic,ic2,ic)  ) #check
         d = self.r1( self.C[ic1],self.C[ic2] )   + self.beta * p * self.Phi( ss[ic+1]['EQs'][ic1,ic2,h]['eq']['vN1'] , ss[ic+1]['EQs'][ic1,ic2,h]['eq']['vI1']  )
@@ -741,8 +755,8 @@ class leapfrogging:
             # end j loop
         # end i loop
 
-        ss[ic]['nEQ'][ic1,ic2] = count # xxx wut? 
-        ESS['bases'][ESS['index'][ic1,ic2,ic]] = count
+        ss[ic]['nEQ'][ic1,ic2] = count -1 # xxx wut? 
+        ESS['bases'][ESS['index'][ic1,ic2,ic]] = count -1 # added -1
 
         # print(f"ss: {ss[ic]['EQs'][ic1, ic2, count-1]['eq'] } ")
 
