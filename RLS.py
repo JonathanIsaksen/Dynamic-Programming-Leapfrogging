@@ -18,12 +18,12 @@ class rls_class:
 
         rlsp = {'maxEQ':np.NaN, 'print':np.NaN}
         rlsp['maxEQ']  =  10 # 50000 maximum number of iterations
-        rlsp['print']  =  10000  # 500 print every rlsp.print equilibria (0: no print, 1: print every, 2: print every second)
+        rlsp['print']  =  1000  # 500 print every rlsp.print equilibria (0: no print, 1: print every, 2: print every second)
 
     #     % initialize matrices
         TAU = np.empty(rlsp['maxEQ']+1)
         TAU[:] = np.nan
-        tau = np.size(stage_index) # start RLS at last stage
+        tau = np.size(stage_index)  # start RLS at last stage
         iEQ = 0
         ESS = np.empty(rlsp['maxEQ']+1,dtype=object)
         ESS[:] = copy.deepcopy(ESS0)
@@ -64,8 +64,10 @@ class rls_class:
     def output(self,ss, ESS):
         out = {}
         out['MPEesr'] = ESS['esr']
-        out['V1'] = max([ss[1]['EQs'][1,1,1]['eq']['vN1'],ss[1]['EQs'][1,1,1]['eq']['vI1']]) #  xxx perhabs change ss[1] to 0
-        out['V2'] = max([ss[1]['EQs'][1,1,1]['eq']['vN2'],ss[1]['EQs'][1,1,1]['eq']['vI2']]) #  xxx perhabs change ss[1] to 0
+        # out['V1'] = max([ss[1]['EQs'][1,1,1]['eq']['vN1'],ss[1]['EQs'][1,1,1]['eq']['vI1']]) #  xxx perhabs change ss[1] to 0
+        # out['V2'] = max([ss[1]['EQs'][1,1,1]['eq']['vN2'],ss[1]['EQs'][1,1,1]['eq']['vI2']]) #  xxx perhabs change ss[1] to 0
+        out['V0'] = max([ss[0]['EQs'][0,0,0]['eq']['vN0'],ss[0]['EQs'][0,0,0]['eq']['vI0']]) #  xxx perhabs change ss[0] to 0
+        out['V2'] = max([ss[0]['EQs'][0,0,0]['eq']['vN2'],ss[0]['EQs'][0,0,0]['eq']['vI2']]) #  xxx perhabs change ss[0] to 0
         return out 
 
     def addOne(self,addESS):
@@ -74,15 +76,20 @@ class rls_class:
         # %end
         n = len(addESS['esr'])
         X = np.zeros(n,dtype=numpy.int8)
-        R = 1
+        R = 1 # xxx change to 0?
         for i in np.flip(np.arange(n)):
             temp_xi = np.mod(addESS['esr'][i] + R,addESS['bases'][i])
             if np.isnan(temp_xi):
-                X[i] = 0
+                X[i] = int(-1)
             else:
-                X[i] = int(temp_xi)
+                X[i] = int(temp_xi-1) 
             # % mod(a,b) does division and returns the remainder given as a-div(a,b)*b
-            R = lf.div(addESS['esr'][i] + R,addESS['bases'][i])
+            
+
+            R = lf.div(addESS['esr'][i] +1 + R,addESS['bases'][i] +1)
+            print(f"esr: {addESS['esr'][i]}")
+            print(f"bases: {addESS['bases'][i]}")
+            print(f'R: {R} ')
             # % div(a,b) does division and truncates - rounding down - to nearest integer  .... floor(a/b)
         if R > 0:
         # % When exiting the loop R > 0 occurs when all ESS.number is max allowed
