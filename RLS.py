@@ -17,7 +17,7 @@ class rls_class:
     def solve(self,G,ss,ESS0, stage_index):
 
         rlsp = {'maxEQ':np.NaN, 'print':np.NaN}
-        rlsp['maxEQ']  =  10 # 50000 maximum number of iterations
+        rlsp['maxEQ']  =  50000 # 50000 maximum number of iterations
         rlsp['print']  =  1000  # 500 print every rlsp.print equilibria (0: no print, 1: print every, 2: print every second)
 
     #     % initialize matrices
@@ -39,6 +39,10 @@ class rls_class:
                 print(f'ESR[{iEQ}][\'bases\']:')
                 print(ESS[iEQ-1]['bases'])
 
+
+            """
+            fix this block:
+            """
             # if nargout>2: # if there are less than 2 outputs xxx
             try:
                 np.insert(out,iEQ,self.output(ss, ESS[iEQ]))
@@ -52,11 +56,18 @@ class rls_class:
                 if changeindex<=i:
                     count_index += 1
             tau = count_index-1 #% tau0 is found
-            if np.all(ESS[iEQ+1]['esr']==-1):
+            if np.all(ESS[iEQ+1]['esr']==-2): # changed to -2
+                print('goodbye')
                 break
+            
+            """
+            :fix this block
+            """
 
             iEQ += 1
             # end % End of recursive lexicographical search
+
+
         TAU=TAU[:iEQ-1]
     
         return ESS, TAU, out
@@ -76,7 +87,9 @@ class rls_class:
         # %end
         n = len(addESS['esr'])
         X = np.zeros(n,dtype=numpy.int8)
-        R = 1 # xxx change to 0?
+        R = 1
+
+        # xxx fix esr
         for i in np.flip(np.arange(n)):
             temp_xi = np.mod(addESS['esr'][i] + R,addESS['bases'][i])
             if np.isnan(temp_xi):
@@ -87,15 +100,15 @@ class rls_class:
             
 
             R = lf.div(addESS['esr'][i] +1 + R,addESS['bases'][i] +1)
-            print(f"esr: {addESS['esr'][i]}")
-            print(f"bases: {addESS['bases'][i]}")
-            print(f'R: {R} ')
+            # print(f"esr: {addESS['esr'][i]}")
+            # print(f"bases: {addESS['bases'][i]}")
+            # print(f'R: {R} ')
             # % div(a,b) does division and truncates - rounding down - to nearest integer  .... floor(a/b)
         if R > 0:
         # % When exiting the loop R > 0 occurs when all ESS.number is max allowed
         # % which is 1 below the base.
             print("No more equilibria to check.")
-            addESS['esr'] = -1*np.ones(n)
+            addESS['esr'] = -2*np.ones(n) 
         else:
             addESS['esr'] = X
         return addESS

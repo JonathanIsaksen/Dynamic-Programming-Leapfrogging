@@ -39,7 +39,8 @@ class leapfrogging:
         self.T = (self.nC-1)*3 + 1
         self.nESS = self.nC * (self.nC + 1) * (2*self.nC+1)/6
 
-        self.base_check = 1 # prints out the bases after every step in state_recursion (0 for off, 1 for on)
+        self.base_check = 0 # prints out the bases after every step in state_recursion (0 for off, 1 for on)
+        self.in__state = 0 # print out where in state_recursion you are
 
         self.firm1 = np.empty((self.nC,self.nC,self.nC)) # initialize the two firms with empty values 
         self.firm1[:] = np.nan
@@ -72,9 +73,9 @@ class leapfrogging:
         
     """
     def state_recursion(self,ss,ESS,tau): 
-        print(f'tau in state_recursion: {tau}')
         if tau == self.T:
-            print('in T')
+            if self.in__state == 1:
+                print('in T')
             ss,ESS = self.solve_last_corner(ss.copy(),ESS.copy())
             tau -= 1
             if self.base_check ==1:
@@ -82,7 +83,8 @@ class leapfrogging:
                 print(f"{ESS['bases']}")
             
         if tau == self.T -1:
-            print('in T-1')
+            if self.in__state == 1:
+                print('in T-1')
             ss,ESS = self.solve_last_edge(ss.copy(),ESS.copy())
             tau -= 1
             if self.base_check ==1:
@@ -90,7 +92,8 @@ class leapfrogging:
                 print(f"{ESS['bases']}")
 
         if tau == self.T -2:
-            print('in T-2')
+            if self.in__state == 1:
+                print('in T-2')
             ss,ESS = self.solve_last_interior(ss.copy(),ESS.copy())
 
             tau -= 1
@@ -103,7 +106,8 @@ class leapfrogging:
         dothis = 1
         while dothis == 1: # break when tau=0 
             if np.remainder(tau,3)==1: 
-                print('in mod==1')
+                if self.in__state == 1:
+                    print('in mod==1')
                 ic = int(np.ceil((tau+2)/3)) - 1 # -1 for python indexing xxx
                 ss,ESS = self.solve_corner(ss.copy(),ic,ESS.copy())
                 tau -= 1
@@ -116,7 +120,8 @@ class leapfrogging:
 
 
             if np.remainder(tau,3)==0:
-                print('in mod==0')
+                if self.in__state == 1:
+                    print('in mod==0')
                 ic = int(np.ceil((tau+2)/3)) - 1 # python starts at 0
                 ss, ESS = self.solve_edge(ss.copy(),ic,ESS.copy())
                 tau -= 1
@@ -126,7 +131,8 @@ class leapfrogging:
                     print(f"{ESS['bases']}")
 
             if np.remainder(tau,3) == 2:
-                print('in mod==2')
+                if self.in__state == 1:
+                    print('in mod==2')
                 ic = int(np.ceil((tau+2)/3)) - 1 # python starts at 0
                 ss, ESS = self.solve_interior(ss.copy(),ic,ESS.copy())
                 tau -= 1
@@ -271,7 +277,6 @@ class leapfrogging:
                 else:
                     list_eq.append(v)
         eq = {'P1':list_eq[0], 'vN1':list_eq[1], 'vI1':list_eq[2], 'P2':list_eq[3], 'vN2':list_eq[4], 'vI2':list_eq[5]}
-        # print(f'ic,ic1,ic2 in EQ: {ic,ic1,ic2}')
         return eq
 
 
@@ -727,6 +732,7 @@ class leapfrogging:
         for i in range(len(pstar1)):
             for j in range(len(pstar2)):
                 if i in [0,1] and j in [0,1]: # set([i,j]).issuperset(set([1,2])): # matlab code: all(ismember([i,j],[1,2]))
+                    
                     if  pc + pb * pstar2[j] + pa * pstar2[j]**2 < 0:
                         exP1 = 1
                     else:
@@ -747,12 +753,12 @@ class leapfrogging:
 
                         ss[ic]['EQs'][ic1, ic2, count-1]['eq'] = self.EQ(pstar1[i],vN1,vI1,pstar2[j],vN2,vI2,ic1, ic2, count-1) # xx wut?
                     
-                    elif i > 1 and j > 1 and pstar1[i] >= 0 and pstar2[j] >= 0 and pstar1[i] <= 1 and pstar2[j] <= 1: # maybe i and j bigger than 2 (changed to 1)
-                        count += 1
-                        v1 = a + b * pstar2[j]
-                        v2 = A + B * pstar1[i]
-                        ss[ic]['EQs'][ic1, ic2, count-1]['eq'] = self.EQ(pstar1[i],v1,v1,pstar2[j],v2,v2,ic1, ic2, count-1)
-                    
+
+                elif i > 1 and j > 1 and pstar1[i] >= 0 and pstar2[j] >= 0 and pstar1[i] <= 1 and pstar2[j] <= 1: # maybe i and j bigger than 2 (changed to 1)
+                    count += 1
+                    v1 = a + b * pstar2[j]
+                    v2 = A + B * pstar1[i]
+                    ss[ic]['EQs'][ic1, ic2, count-1]['eq'] = self.EQ(pstar1[i],v1,v1,pstar2[j],v2,v2,ic1, ic2, count-1)
             # end j loop
         # end i loop
 
