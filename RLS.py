@@ -29,7 +29,8 @@ class rls_class:
         iEQ = 0
         ESS = np.empty(rlsp['maxEQ']+1,dtype=object)
         ESS[:] = copy.deepcopy(ESS0)
-        out = np.empty(rlsp['maxEQ']+1,dtype='object')
+        out = []
+        # out = [np.empty(rlsp['maxEQ']+1,dtype='object')]
         while iEQ < rlsp['maxEQ']:
             TAU[iEQ] = copy.deepcopy(tau)
             ss, ESS[iEQ] = G(copy.deepcopy(ss),copy.deepcopy(ESS[iEQ]), tau)
@@ -72,7 +73,6 @@ class rls_class:
             """
             :fix this block
             """
-
             iEQ += 1
             # end % End of recursive lexicographical search
 
@@ -85,7 +85,7 @@ class rls_class:
         out2['MPEesr'] = copy.deepcopy(ESS['esr'])
         # out['V1'] = max([ss[1]['EQs'][1,1,1]['eq']['vN1'],ss[1]['EQs'][1,1,1]['eq']['vI1']]) #  xxx perhabs change ss[1] to 0
         # out['V2'] = max([ss[1]['EQs'][1,1,1]['eq']['vN2'],ss[1]['EQs'][1,1,1]['eq']['vI2']]) #  xxx perhabs change ss[1] to 0
-        out2['V0'] = np.maximum(ss[0]['EQs'][0,0,0]['eq']['vN1'],ss[0]['EQs'][0,0,0]['eq']['vI1']) #  xxx perhabs change ss[0] to 0
+        out2['V1'] = np.maximum(ss[0]['EQs'][0,0,0]['eq']['vN1'],ss[0]['EQs'][0,0,0]['eq']['vI1']) #  xxx perhabs change ss[0] to 0
         out2['V2'] = np.maximum(ss[0]['EQs'][0,0,0]['eq']['vN2'],ss[0]['EQs'][0,0,0]['eq']['vI2']) #  xxx perhabs change ss[0] to 0
         return out2 
 
