@@ -709,21 +709,17 @@ class leapfrogging:
         pstar2 = self.quad(pa,pb,pc)
         
 
-        # A and E are wrong xxx
-        # H2 is wrong xxx
         A = self.r2(self.C[ic1],self.C[ic2]) - self.K(c) + self.beta * H2(ic1,ic,ic)
         B = self.beta * ( H2(ic,ic,ic) - H2(ic1,ic,ic) )
         D = self.r2(self.C[ic1],self.C[ic2]) + self.beta * p * self.Phi( ss[ic+1]['EQs'][ic1,ic2,h]['eq']['vN2'] , ss[ic+1]['EQs'][ic1,ic2,h]['eq']['vI2'] )
         E = self.beta * H2(ic,ic2,ic) - self.beta * p * self.Phi( ss[ic+1]['EQs'][ic1,ic2,h]['eq']['vN2'] , ss[ic+1]['EQs'][ic1,ic2,h]['eq']['vI2'] )
 
 
-        # qb and qc are wrong
         qa = - self.beta * (1-p) * B
         qb = E + ( self.beta * (1-p) - 1 ) * B - self.beta * (1-p) * A
         qc = D + ( self.beta * (1-p) - 1 ) * A
 
 
-        # xxx pstar1 wrong 
         pstar1 = self.quad(qa, qb, qc)
 
 
@@ -777,11 +773,11 @@ class leapfrogging:
         # % a is size increase to smallest all points (use to increase small bubbles)
         # % d is factor to decrease max(weights) because some equilibria are just
         # % very large in number
-        V = V[:,1:2]
+        V = V[:,0:1]
         a = 5
         d = 0.005
-        Vu,Vx,Vz = unique(round(V+0.000001,3),'rows') # xxx no idea what this does
-        N = len(Vu[:,1])
+        Vu,Vx,Vz = np.unique(round(V+0.000001,3),'rows') 
+        N = len(Vu[:,1]) 
 
         if adjust==1:
             weights = np.ones(N,1)
