@@ -46,7 +46,9 @@ class rls_class:
             """
             # if nargout>2: # if there are less than 2 outputs xxx
             try:
-                out = copy.deepcopy(np.insert(out,iEQ,self.output(ss, ESS[iEQ])))
+                out.append(copy.deepcopy(self.output(ss, ESS[iEQ])))
+                # very slow:
+                # out = copy.deepcopy(np.insert(out,iEQ,self.output(ss, ESS[iEQ])))
             except:
                 pass
 
@@ -86,6 +88,7 @@ class rls_class:
         out2['V0'] = np.maximum(ss[0]['EQs'][0,0,0]['eq']['vN1'],ss[0]['EQs'][0,0,0]['eq']['vI1']) #  xxx perhabs change ss[0] to 0
         out2['V2'] = np.maximum(ss[0]['EQs'][0,0,0]['eq']['vN2'],ss[0]['EQs'][0,0,0]['eq']['vI2']) #  xxx perhabs change ss[0] to 0
         return out2 
+
 
     def addOne(self,addESS):
         # %if x[1,1,1] == -1
