@@ -14,7 +14,9 @@ import copy
 class rls_class:
     # def __init__(self):
     
+
     def solve(self,G,ss,ESS0, stage_index):
+        checki = 1 # display loop number for testing
 
         rlsp = {'maxEQ':np.NaN, 'print':np.NaN}
         rlsp['maxEQ']  =  50000 # 50000 maximum number of iterations
@@ -27,10 +29,9 @@ class rls_class:
         iEQ = 0
         ESS = np.empty(rlsp['maxEQ']+1,dtype=object)
         ESS[:] = copy.deepcopy(ESS0)
-        out = np.empty(rlsp['maxEQ']+1)
-        out[:] = np.NaN
+        out = np.empty(rlsp['maxEQ']+1,dtype='object')
         while iEQ < rlsp['maxEQ']:
-            TAU[iEQ] = tau
+            TAU[iEQ] = copy.deepcopy(tau)
             ss, ESS[iEQ] = G(copy.deepcopy(ss),copy.deepcopy(ESS[iEQ]), tau)
 
             if (np.mod(iEQ,rlsp['print'])==0):
@@ -45,12 +46,18 @@ class rls_class:
             """
             # if nargout>2: # if there are less than 2 outputs xxx
             try:
-                np.insert(out,iEQ,self.output(ss, ESS[iEQ]))
+                out = copy.deepcopy(np.insert(out,iEQ,self.output(ss, ESS[iEQ])))
             except:
                 pass
-            ESS[iEQ+1] = self.addOne(copy.deepcopy(ESS[iEQ]))
-            changeindex_temp = np.nonzero((ESS[iEQ+1]['esr']-ESS[iEQ]['esr'])!=0)[0]
-            changeindex = min(changeindex_temp)
+
+            # print(f'checki: {checki} ')
+            # checki += 1
+            ESS[iEQ+1] = copy.deepcopy(self.addOne(copy.deepcopy(ESS[iEQ])))
+
+
+            changeindex_temp = np.nonzero((copy.deepcopy(ESS[iEQ+1]['esr'])-copy.deepcopy(ESS[iEQ]['esr']))!=0)[0]
+            
+            changeindex = min(changeindex_temp) +1
             count_index = 0
             for i in stage_index:
                 if changeindex<=i:
@@ -69,17 +76,16 @@ class rls_class:
 
 
         TAU=TAU[:iEQ-1]
-    
         return ESS, TAU, out
 
     def output(self,ss, ESS):
-        out = {}
-        out['MPEesr'] = ESS['esr']
+        out2 = {}
+        out2['MPEesr'] = copy.deepcopy(ESS['esr'])
         # out['V1'] = max([ss[1]['EQs'][1,1,1]['eq']['vN1'],ss[1]['EQs'][1,1,1]['eq']['vI1']]) #  xxx perhabs change ss[1] to 0
         # out['V2'] = max([ss[1]['EQs'][1,1,1]['eq']['vN2'],ss[1]['EQs'][1,1,1]['eq']['vI2']]) #  xxx perhabs change ss[1] to 0
-        out['V0'] = max([ss[0]['EQs'][0,0,0]['eq']['vN0'],ss[0]['EQs'][0,0,0]['eq']['vI0']]) #  xxx perhabs change ss[0] to 0
-        out['V2'] = max([ss[0]['EQs'][0,0,0]['eq']['vN2'],ss[0]['EQs'][0,0,0]['eq']['vI2']]) #  xxx perhabs change ss[0] to 0
-        return out 
+        out2['V0'] = np.maximum(ss[0]['EQs'][0,0,0]['eq']['vN1'],ss[0]['EQs'][0,0,0]['eq']['vI1']) #  xxx perhabs change ss[0] to 0
+        out2['V2'] = np.maximum(ss[0]['EQs'][0,0,0]['eq']['vN2'],ss[0]['EQs'][0,0,0]['eq']['vI2']) #  xxx perhabs change ss[0] to 0
+        return out2 
 
     def addOne(self,addESS):
         # %if x[1,1,1] == -1
@@ -91,18 +97,23 @@ class rls_class:
 
         # xxx fix esr
         for i in np.flip(np.arange(n)):
-            temp_xi = np.mod(addESS['esr'][i] + R,addESS['bases'][i])
-            if np.isnan(temp_xi):
-                X[i] = int(-1)
-            else:
-                X[i] = int(temp_xi-1) 
+
+            X[i] = np.mod(copy.deepcopy(addESS['esr'][i]) + R +1 ,copy.deepcopy(addESS['bases'][i])+1) 
+
+            # if addESS['bases'][i] == 0:
+            #     X[i] = copy.deepcopy(addESS['esr'][i]) + R 
+            # else:
+            #     X[i] = np.mod(copy.deepcopy(addESS['esr'][i]) + R,copy.deepcopy(addESS['bases'][i])) 
+            
+
             # % mod(a,b) does division and returns the remainder given as a-div(a,b)*b
             
 
-            R = lf.div(addESS['esr'][i] +1 + R,addESS['bases'][i] +1)
+            R = lf.div(copy.deepcopy(addESS['esr'][i]) +R +1,copy.deepcopy(addESS['bases'][i] )+1) 
             # print(f"esr: {addESS['esr'][i]}")
             # print(f"bases: {addESS['bases'][i]}")
             # print(f'R: {R} ')
+
             # % div(a,b) does division and truncates - rounding down - to nearest integer  .... floor(a/b)
         if R > 0:
         # % When exiting the loop R > 0 occurs when all ESS.number is max allowed
@@ -110,5 +121,5 @@ class rls_class:
             print("No more equilibria to check.")
             addESS['esr'] = -2*np.ones(n) 
         else:
-            addESS['esr'] = X
+            addESS['esr'] = copy.deepcopy(X[:] -1)
         return addESS
