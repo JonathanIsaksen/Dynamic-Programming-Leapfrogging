@@ -77,7 +77,7 @@ class rls_class:
             # end % End of recursive lexicographical search
 
 
-        TAU=TAU[:iEQ-1]
+        TAU=TAU[:iEQ]
         return ESS, TAU, out
 
     def output(self,ss, ESS):
