@@ -12,29 +12,29 @@ lf = leapfrogging()
 import copy
 
 class rls_class:
-    # def __init__(self):
+    # def __init__(self): # not really defining any parameters in rls so ommited it. might have to include it in the future.
     
 
     def solve(self,G,ss,ESS0, stage_index):
-        checki = 1 # display loop number for testing
 
         rlsp = {'maxEQ':np.NaN, 'print':np.NaN}
-        rlsp['maxEQ']  =  50000 # 50000 maximum number of iterations
-        rlsp['print']  =  1000  # 500 print every rlsp.print equilibria (0: no print, 1: print every, 2: print every second)
+        rlsp['maxEQ']  =  200000 # maximum number of iterations
+        rlsp['print']  =  1000  # print every x equilibria
 
-    #     % initialize matrices
-        TAU = np.empty(rlsp['maxEQ']+1)
-        TAU[:] = np.nan
+        # define matrices to store results
+        TAU = np.empty(rlsp['maxEQ']+1) # number of TAU +1 for python indexing
+        TAU[:] = np.nan # start as nan and fill out
         tau = np.size(stage_index)  # start RLS at last stage
-        iEQ = 0
-        ESS = np.empty(rlsp['maxEQ']+1,dtype=object)
+        iEQ = 0 # first iteration
+        ESS = np.empty(rlsp['maxEQ']+1,dtype=object) # dtype=object to support dictionaries
         ESS[:] = copy.deepcopy(ESS0)
         out = []
-        # out = [np.empty(rlsp['maxEQ']+1,dtype='object')]
-        while iEQ < rlsp['maxEQ']:
+
+        while iEQ < rlsp['maxEQ']: # loop until max iterations or all equilibria are found
             TAU[iEQ] = copy.deepcopy(tau)
             ss, ESS[iEQ] = G(copy.deepcopy(ss),copy.deepcopy(ESS[iEQ]), tau)
 
+            # print the progress every rlsp['print']
             if (np.mod(iEQ,rlsp['print'])==0):
                 print(f'ESR[{iEQ}][\'esr\']  :')
                 print(ESS[iEQ-1]['esr'])
@@ -42,22 +42,17 @@ class rls_class:
                 print(ESS[iEQ-1]['bases'])
 
 
-            """
-            fix this block:
-            """
-            # if nargout>2: # if there are less than 2 outputs xxx
+            # save the equilibria to out
             try:
                 out.append(copy.deepcopy(self.output(ss, ESS[iEQ])))
-                # very slow:
-                # out = copy.deepcopy(np.insert(out,iEQ,self.output(ss, ESS[iEQ])))
             except:
                 pass
-
-            # print(f'checki: {checki} ')
-            # checki += 1
+            
+            # continue onto next iteration
             ESS[iEQ+1] = copy.deepcopy(self.addOne(copy.deepcopy(ESS[iEQ])))
 
 
+            # start of the find next tau
             changeindex_temp = np.nonzero((copy.deepcopy(ESS[iEQ+1]['esr'])-copy.deepcopy(ESS[iEQ]['esr']))!=0)[0]
             
             changeindex = min(changeindex_temp) +1
@@ -65,8 +60,8 @@ class rls_class:
             for i in stage_index:
                 if changeindex<=i:
                     count_index += 1
-            tau = count_index-1 #% tau0 is found
-            if np.all(ESS[iEQ+1]['esr']==-2): # changed to -2
+            tau = count_index-1 #% tau is found
+            if np.all(ESS[iEQ+1]['esr']==-2): # if R > 0 for all ESS indexies
                 print('goodbye')
                 break
             
@@ -83,10 +78,8 @@ class rls_class:
     def output(self,ss, ESS):
         out2 = {}
         out2['MPEesr'] = copy.deepcopy(ESS['esr'])
-        # out['V1'] = max([ss[1]['EQs'][1,1,1]['eq']['vN1'],ss[1]['EQs'][1,1,1]['eq']['vI1']]) #  xxx perhabs change ss[1] to 0
-        # out['V2'] = max([ss[1]['EQs'][1,1,1]['eq']['vN2'],ss[1]['EQs'][1,1,1]['eq']['vI2']]) #  xxx perhabs change ss[1] to 0
-        out2['V1'] = np.maximum(ss[0]['EQs'][0,0,0]['eq']['vN1'],ss[0]['EQs'][0,0,0]['eq']['vI1']) #  xxx perhabs change ss[0] to 0
-        out2['V2'] = np.maximum(ss[0]['EQs'][0,0,0]['eq']['vN2'],ss[0]['EQs'][0,0,0]['eq']['vI2']) #  xxx perhabs change ss[0] to 0
+        out2['V1'] = np.maximum(ss[0]['EQs'][0,0,0]['eq']['vN1'],ss[0]['EQs'][0,0,0]['eq']['vI1']) 
+        out2['V2'] = np.maximum(ss[0]['EQs'][0,0,0]['eq']['vN2'],ss[0]['EQs'][0,0,0]['eq']['vI2']) 
         return out2 
 
 

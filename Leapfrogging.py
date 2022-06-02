@@ -20,7 +20,7 @@ import copy
 
 class leapfrogging:
 
-    def __init__(self, Cmax = 5, Cmin = 0, nC = 4, pf = 1, k0 = 0, k1 = 8.3, k2 = 1, R = 0.05, Dt = 1):
+    def __init__(self, Cmax = 5, Cmin = 0, nC = 4, pf = 1, k0 = 0, k1 = 8.3, k2 = 1, R = 0.05, Dt = 1, r1 = lambda x1,x2: np.maximum(x2-x1,0)):
         """
         Descibe the variables here :(
         all the standard fixed parameters
@@ -60,7 +60,7 @@ class leapfrogging:
         """
         self.K = lambda c: self.k0+self.k1/(1+self.k2*c) # investment cost of state of the art production cost c
         self.payoff = lambda x: (self.p-x)*self.Dt  # flow payoffs per unit of time
-        self.r1 = lambda x1,x2: np.maximum(x2-x1,0)
+        self.r1 = r1
         self.r2 = lambda x1,x2: np.maximum(x1-x2,0)
         self.Phi = lambda vN,vI: np.maximum(vN, vI) # xxx this should maybe be made to accept lists.
 
