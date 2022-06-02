@@ -1,5 +1,5 @@
 # Dynamic-Programming-Leapfrogging
 
-LeapFrogging defines the game.  
-RLS is the algorithm used to solve the game.  
-Solver solves the game.  
+LeapFrogging defines the game and the solver functions used in RLS
+RLS solves the game and saves the output.
+Solver runs the code and creates the graphs
