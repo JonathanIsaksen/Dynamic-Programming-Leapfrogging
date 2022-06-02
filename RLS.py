@@ -76,6 +76,7 @@ class rls_class:
         return ESS, TAU, out
 
     def output(self,ss, ESS):
+        # save the output
         out2 = {}
         out2['MPEesr'] = copy.deepcopy(ESS['esr'])
         out2['V1'] = np.maximum(ss[0]['EQs'][0,0,0]['eq']['vN1'],ss[0]['EQs'][0,0,0]['eq']['vI1']) 
@@ -84,36 +85,19 @@ class rls_class:
 
 
     def addOne(self,addESS):
-        # %if x[1,1,1] == -1
-        # %    throw(error("This ESS has already overflown!"))
-        # %end
         n = len(addESS['esr'])
         X = np.zeros(n,dtype=numpy.int8)
         R = 1
 
-        # xxx fix esr
+        # adds one to the esr unless all equilibria are found then it ends the program
         for i in np.flip(np.arange(n)):
 
             X[i] = np.mod(copy.deepcopy(addESS['esr'][i]) + R +1 ,copy.deepcopy(addESS['bases'][i])+1) 
-
-            # if addESS['bases'][i] == 0:
-            #     X[i] = copy.deepcopy(addESS['esr'][i]) + R 
-            # else:
-            #     X[i] = np.mod(copy.deepcopy(addESS['esr'][i]) + R,copy.deepcopy(addESS['bases'][i])) 
-            
-
-            # % mod(a,b) does division and returns the remainder given as a-div(a,b)*b
             
 
             R = lf.div(copy.deepcopy(addESS['esr'][i]) +R +1,copy.deepcopy(addESS['bases'][i] )+1) 
-            # print(f"esr: {addESS['esr'][i]}")
-            # print(f"bases: {addESS['bases'][i]}")
-            # print(f'R: {R} ')
 
-            # % div(a,b) does division and truncates - rounding down - to nearest integer  .... floor(a/b)
         if R > 0:
-        # % When exiting the loop R > 0 occurs when all ESS.number is max allowed
-        # % which is 1 below the base.
             print("No more equilibria to check.")
             addESS['esr'] = -2*np.ones(n) 
         else:
